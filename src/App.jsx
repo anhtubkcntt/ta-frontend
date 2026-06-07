@@ -43,31 +43,19 @@ function App() {
   return <MainLayout session={session} toggleTheme={toggleTheme} theme={theme} />;
 }
 
-// Giao diện Đăng nhập / Đăng ký
+// Giao diện Đăng nhập
 function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
 
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
-    let error;
 
-    if (isLogin) {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      error = signInError;
-    } else {
-      const { error: signUpError } = await supabase.auth.signUp({ email, password });
-      error = signUpError;
-      if (!error) {
-        alert("Đăng ký thành công! Vui lòng kiểm tra email để xác nhận (nếu Supabase yêu cầu), hoặc đăng nhập ngay.");
-        setIsLogin(true);
-      }
-    }
-
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) alert(error.message);
+    
     setLoading(false);
   };
 
@@ -76,7 +64,7 @@ function Auth() {
       <div className="glass-panel auth-card">
         <h2>TA Task Manager</h2>
         <p style={{color: 'var(--text-secondary)', marginBottom: '24px'}}>
-          {isLogin ? 'Sign in to manage tasks' : 'Create a new account'}
+          Sign in to manage tasks
         </p>
         <form onSubmit={handleAuth}>
           <div className="input-group">
@@ -88,21 +76,8 @@ function Auth() {
             <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} minLength="6" />
           </div>
           <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-            {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
+            {loading ? 'Processing...' : 'Sign In'}
           </button>
-          
-          <div style={{ marginTop: '16px', fontSize: '0.9rem' }}>
-            <span style={{ color: 'var(--text-secondary)' }}>
-              {isLogin ? "Don't have an account? " : "Already have an account? "}
-            </span>
-            <button 
-              type="button" 
-              onClick={() => setIsLogin(!isLogin)} 
-              style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontWeight: 'bold' }}
-            >
-              {isLogin ? 'Sign Up' : 'Sign In'}
-            </button>
-          </div>
         </form>
       </div>
     </div>
