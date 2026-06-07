@@ -6,7 +6,12 @@ export default function TaskBoard({ session }) {
   const [tasks, setTasks] = useState([]);
   const [profiles, setProfiles] = useState({});
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('ALL');
+  
+  // Filters
+  const [filter, setFilter] = useState('ALL'); // Category
+  const [assigneeFilter, setAssigneeFilter] = useState('ALL');
+  const [timeFilter, setTimeFilter] = useState('ALL');
+  
   const [selectedTask, setSelectedTask] = useState(null);
 
   useEffect(() => {
@@ -60,9 +65,33 @@ export default function TaskBoard({ session }) {
     }
   };
 
+  const filterByDate = (dateString, filterType) => {
+    if (filterType === 'ALL') return true;
+    
+    const taskDate = new Date(dateString);
+    const today = new Date();
+    
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    if (filterType === 'TODAY') {
+      return taskDate >= startOfToday;
+    }
+    
+    if (filterType === 'THIS_WEEK') {
+      const dayOfWeek = today.getDay(); // 0 is Sunday
+      const diffToMonday = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+      const startOfWeek = new Date(today.getFullYear(), today.getMonth(), diffToMonday);
+      return taskDate >= startOfWeek;
+    }
+    
+    return true;
+  };
+
   const filteredTasks = tasks.filter(task => {
-    if (filter === 'ALL') return true;
-    return task.category === filter;
+    const passCategory = filter === 'ALL' || task.category === filter;
+    const passAssignee = assigneeFilter === 'ALL' || task.pic_id === assigneeFilter;
+    const passTime = filterByDate(task.created_at, timeFilter);
+    return passCategory && passAssignee && passTime;
   });
 
   if (selectedTask) {
@@ -77,12 +106,12 @@ export default function TaskBoard({ session }) {
 
   return (
     <div className="glass-panel" style={{ padding: '24px', minHeight: '600px', position: 'relative' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <h2>Task Board (Kanban)</h2>
-        <div>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <select 
             className="btn glass-panel" 
-            style={{ color: 'white', marginRight: '12px' }}
+            style={{ color: 'var(--text-main)' }}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           >
@@ -90,6 +119,30 @@ export default function TaskBoard({ session }) {
             <option value="RECRUITMENT">Recruitment</option>
             <option value="EB">Employer Branding</option>
             <option value="OTHER">Other</option>
+          </select>
+
+          <select 
+            className="btn glass-panel" 
+            style={{ color: 'var(--text-main)' }}
+            value={assigneeFilter}
+            onChange={(e) => setAssigneeFilter(e.target.value)}
+          >
+            <option value="ALL">All Assignees</option>
+            <option value="UNASSIGNED">Unassigned</option>
+            {Object.values(profiles).map(p => (
+              <option key={p.id} value={p.id}>{p.email.split('@')[0]}</option>
+            ))}
+          </select>
+
+          <select 
+            className="btn glass-panel" 
+            style={{ color: 'var(--text-main)' }}
+            value={timeFilter}
+            onChange={(e) => setTimeFilter(e.target.value)}
+          >
+            <option value="ALL">All Time</option>
+            <option value="TODAY">Created Today</option>
+            <option value="THIS_WEEK">Created This Week</option>
           </select>
         </div>
       </div>
@@ -99,10 +152,10 @@ export default function TaskBoard({ session }) {
       ) : (
         <div style={{ display: 'flex', gap: '24px', overflowX: 'auto', paddingBottom: '16px' }}>
           {columns.map(col => (
-            <div key={col.id} style={{ flex: 1, minWidth: '300px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '8px', padding: '16px' }}>
+            <div key={col.id} style={{ flex: 1, minWidth: '300px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: `2px solid ${col.color}`, paddingBottom: '8px' }}>
                 <h3 style={{ fontSize: '1.1rem' }}>{col.title}</h3>
-                <span style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.8rem' }}>
+                <span className="badge" style={{ backgroundColor: 'var(--surface-color)', borderColor: 'var(--border-color)' }}>
                   {filteredTasks.filter(t => t.status === col.id).length}
                 </span>
               </div>
@@ -112,28 +165,28 @@ export default function TaskBoard({ session }) {
                   <div 
                     key={task.id} 
                     className="glass-panel" 
-                    style={{ padding: '16px', cursor: 'pointer', transition: 'transform 0.2s' }}
+                    style={{ padding: '16px', cursor: 'pointer', transition: 'transform 0.2s', backgroundColor: 'var(--surface-color)' }}
                     onClick={() => setSelectedTask(task)}
                     onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
                     onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--primary-color)', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                      <span className="badge" style={{ color: 'var(--primary-color)', borderColor: 'var(--primary-color)' }}>
                         {task.category}
                       </span>
                       {/* Action buttons to change status */}
                       <div style={{ display: 'flex', gap: '4px' }} onClick={e => e.stopPropagation()}>
-                        {col.id !== 'PENDING' && <button onClick={() => updateTaskStatus(task.id, 'PENDING')} title="Move to Pending" style={{ background: 'none', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>&larr;</button>}
-                        {col.id === 'PENDING' && <button onClick={() => updateTaskStatus(task.id, 'IN_PROGRESS')} title="Move to In Progress" style={{ background: 'none', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>&rarr;</button>}
-                        {col.id === 'IN_PROGRESS' && <button onClick={() => updateTaskStatus(task.id, 'DONE')} title="Move to Done" style={{ background: 'none', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>&rarr;</button>}
+                        {col.id !== 'PENDING' && <button onClick={() => updateTaskStatus(task.id, 'PENDING')} title="Move to Pending" style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>&larr;</button>}
+                        {col.id === 'PENDING' && <button onClick={() => updateTaskStatus(task.id, 'IN_PROGRESS')} title="Move to In Progress" style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>&rarr;</button>}
+                        {col.id === 'IN_PROGRESS' && <button onClick={() => updateTaskStatus(task.id, 'DONE')} title="Move to Done" style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>&rarr;</button>}
                       </div>
                     </div>
                     
                     <h4 style={{ fontSize: '1rem', marginBottom: '8px', lineHeight: '1.4' }}>{task.name}</h4>
                     
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border-color)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'var(--primary-color)', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                        <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'var(--primary-color)', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
                           {profiles[task.pic_id] ? profiles[task.pic_id].email.charAt(0).toUpperCase() : '?'}
                         </div>
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }} title={profiles[task.pic_id]?.email}>
