@@ -12,6 +12,8 @@ export default function TaskList({ session }) {
   const [filter, setFilter] = useState('ALL'); // Category
   const [assigneeFilter, setAssigneeFilter] = useState('ALL');
   const [timeFilter, setTimeFilter] = useState('ALL');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
   
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -88,12 +90,30 @@ export default function TaskList({ session }) {
       return taskDate >= startOfWeek;
     }
     
+    if (filterType === 'CUSTOM') {
+      let pass = true;
+      if (customStart) {
+        const start = new Date(customStart);
+        if (taskDate < start) pass = false;
+      }
+      if (customEnd) {
+        const end = new Date(customEnd);
+        end.setHours(23, 59, 59, 999);
+        if (taskDate > end) pass = false;
+      }
+      return pass;
+    }
+    
     return true;
   };
 
   const filteredTasks = tasks.filter(task => {
     const passCategory = filter === 'ALL' || task.category === filter;
-    const passAssignee = assigneeFilter === 'ALL' || task.pic_id === assigneeFilter;
+    
+    const passAssignee = assigneeFilter === 'ALL' || 
+                         (assigneeFilter === 'UNASSIGNED' ? (!task.pic_ids || task.pic_ids.length === 0) : 
+                         (task.pic_ids && task.pic_ids.includes(assigneeFilter)));
+                         
     const passTime = filterByDate(task.created_at, timeFilter);
     return passCategory && passAssignee && passTime;
   });
@@ -125,13 +145,13 @@ export default function TaskList({ session }) {
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
           >
-            <option value="ALL">All Assignees</option>
+            <option value="ALL">All PICs</option>
             <option value="UNASSIGNED">Unassigned</option>
             {Object.values(profiles).map(p => (
               <option key={p.id} value={p.id}>{p.email.split('@')[0]}</option>
             ))}
           </select>
-
+          
           <select 
             className="btn glass-panel" 
             style={{ color: 'var(--text-main)' }}
@@ -141,7 +161,28 @@ export default function TaskList({ session }) {
             <option value="ALL">All Time</option>
             <option value="TODAY">Created Today</option>
             <option value="THIS_WEEK">Created This Week</option>
+            <option value="CUSTOM">Custom Range</option>
           </select>
+
+          {timeFilter === 'CUSTOM' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input 
+                type="date" 
+                className="btn glass-panel" 
+                style={{ padding: '8px', color: 'var(--text-main)', fontSize: '0.85rem' }} 
+                value={customStart}
+                onChange={e => setCustomStart(e.target.value)}
+              />
+              <span style={{ color: 'var(--text-secondary)' }}>to</span>
+              <input 
+                type="date" 
+                className="btn glass-panel" 
+                style={{ padding: '8px', color: 'var(--text-main)', fontSize: '0.85rem' }} 
+                value={customEnd}
+                onChange={e => setCustomEnd(e.target.value)}
+              />
+            </div>
+          )}
 
           <button className="btn btn-primary" onClick={() => setShowTaskForm(true)}>+ New Task</button>
         </div>
@@ -160,7 +201,7 @@ export default function TaskList({ session }) {
               <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <th style={{ padding: '12px' }}>Name</th>
                 <th style={{ padding: '12px' }}>Category</th>
-                <th style={{ padding: '12px' }}>Assignee</th>
+                <th style={{ padding: '12px' }}>PICs</th>
                 <th style={{ padding: '12px' }}>Created At</th>
                 <th style={{ padding: '12px' }}>Status</th>
                 <th style={{ padding: '12px' }}>Actions</th>
@@ -176,7 +217,9 @@ export default function TaskList({ session }) {
                     </span>
                   </td>
                   <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>
-                    {profiles[task.pic_id] ? profiles[task.pic_id].email.split('@')[0] : 'Unassigned'}
+                    {task.pic_ids && task.pic_ids.length > 0 
+                      ? task.pic_ids.map(id => profiles[id]?.email.split('@')[0]).filter(Boolean).join(', ') 
+                      : 'Unassigned'}
                   </td>
                   <td style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                     {new Date(task.created_at).toLocaleDateString()}

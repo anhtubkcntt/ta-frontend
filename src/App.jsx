@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import TaskBoard from './components/TaskBoard';
 import TaskList from './components/TaskList';
-import Reports from './components/Reports';
+import Dashboard from './components/Dashboard';
+import './index.css';
 
 function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState('dark');
 
   useEffect(() => {
-    // Lấy session hiện tại
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
 
-    // Lắng nghe thay đổi trạng thái đăng nhập
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -25,15 +25,21 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+  };
+
   if (loading) {
     return <div className="auth-container">Loading...</div>;
   }
 
-  return (
-    <div>
-      {!session ? <Auth /> : <MainLayout session={session} />}
-    </div>
-  );
+  if (!session) {
+    return <Auth />;
+  }
+
+  return <MainLayout session={session} toggleTheme={toggleTheme} theme={theme} />;
 }
 
 // Giao diện Đăng nhập / Đăng ký
@@ -102,144 +108,115 @@ function Auth() {
   );
 }
 
-// Layout chính chứa Sidebar và thay đổi nội dung (Dashboard/Tasks)
-function MainLayout({ session }) {
+// Layout chính chứa Sidebar và thay đổi nội dung
+function MainLayout({ session, toggleTheme, theme }) {
   const [activeTab, setActiveTab] = useState('DASHBOARD');
 
   return (
     <div className="app-container">
-      <aside className="sidebar">
-        <h1>TA Manager</h1>
-        <ul className="nav-links">
-          <li>
-            <a href="#" className={activeTab === 'DASHBOARD' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('DASHBOARD'); }}>
-              Dashboard
-            </a>
+      {/* Sidebar Navigation */}
+      <div className="sidebar">
+        <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '24px 20px', borderBottom: '1px solid var(--border-color)', marginBottom: '16px' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, var(--primary-color), #8b5cf6)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold' }}>
+            TA
+          </div>
+          <h3 style={{ fontSize: '1.2rem', letterSpacing: '0.5px' }}>TaskFlow</h3>
+        </div>
+        
+        <ul className="nav-menu" style={{ listStyle: 'none', padding: '0 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <li 
+            className={activeTab === 'DASHBOARD' ? 'active' : ''} 
+            onClick={() => setActiveTab('DASHBOARD')}
+            style={{ 
+              padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', 
+              backgroundColor: activeTab === 'DASHBOARD' ? 'var(--primary-color)' : 'transparent',
+              color: activeTab === 'DASHBOARD' ? 'white' : 'var(--text-secondary)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <span style={{ fontSize: '1.2rem' }}>📊</span> Dashboard
           </li>
-          <li>
-            <a href="#" className={activeTab === 'TASK_LIST' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('TASK_LIST'); }}>
-              Task List
-            </a>
+          <li 
+            className={activeTab === 'TASK_BOARD' ? 'active' : ''} 
+            onClick={() => setActiveTab('TASK_BOARD')}
+            style={{ 
+              padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', 
+              backgroundColor: activeTab === 'TASK_BOARD' ? 'var(--primary-color)' : 'transparent',
+              color: activeTab === 'TASK_BOARD' ? 'white' : 'var(--text-secondary)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <span style={{ fontSize: '1.2rem' }}>📋</span> Kanban Board
           </li>
-          <li>
-            <a href="#" className={activeTab === 'TASK_BOARD' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('TASK_BOARD'); }}>
-              Task Board
-            </a>
-          </li>
-          <li>
-            <a href="#" className={activeTab === 'REPORTS' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('REPORTS'); }}>
-              Reports
-            </a>
+          <li 
+            className={activeTab === 'TASK_LIST' ? 'active' : ''} 
+            onClick={() => setActiveTab('TASK_LIST')}
+            style={{ 
+              padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', 
+              backgroundColor: activeTab === 'TASK_LIST' ? 'var(--primary-color)' : 'transparent',
+              color: activeTab === 'TASK_LIST' ? 'white' : 'var(--text-secondary)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <span style={{ fontSize: '1.2rem' }}>📝</span> List View
           </li>
         </ul>
-        <div style={{marginTop: 'auto'}}>
-          <p style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>{session.user.email}</p>
+        
+        <div style={{ marginTop: 'auto', padding: '20px', borderTop: '1px solid var(--border-color)' }}>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '12px', wordBreak: 'break-all' }}>
+            {session.user.email}
+          </p>
           <button 
-            className="btn" 
-            style={{marginTop: '10px', background: 'transparent', color: 'var(--danger)', padding: 0}}
+            className="btn glass-panel" 
             onClick={() => supabase.auth.signOut()}
+            style={{ width: '100%', color: 'var(--text-main)', display: 'flex', justifyContent: 'center', gap: '8px' }}
           >
-            Sign out
+            <span>🚪</span> Sign Out
           </button>
         </div>
-      </aside>
+      </div>
 
-      <main className="main-content">
-        {activeTab === 'DASHBOARD' && <DashboardContent />}
-        {activeTab === 'TASK_LIST' && <TaskList session={session} />}
-        {activeTab === 'TASK_BOARD' && <TaskBoard session={session} />}
-        {activeTab === 'REPORTS' && <Reports />}
-      </main>
-    </div>
-  );
-}
-
-// Giao diện Dashboard (Lấy data thật)
-function DashboardContent() {
-  const [stats, setStats] = useState({ totalCVs: 0, activeTasks: 0, offers: 0 });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchDashboardStats();
-  }, []);
-
-  const fetchDashboardStats = async () => {
-    setLoading(true);
-    try {
-      // 1. Get active tasks count
-      const { data: activeTasksData } = await supabase
-        .from('tasks')
-        .select('id')
-        .neq('status', 'DONE');
-      
-      // 2. Get recruitment metrics for Total CVs and Offers
-      const { data: metricsData } = await supabase
-        .from('task_recruitment_metrics')
-        .select('total_cv_received, offers');
-
-      let totalCVs = 0;
-      let totalOffers = 0;
-
-      if (metricsData) {
-        metricsData.forEach(m => {
-          totalCVs += (m.total_cv_received || 0);
-          totalOffers += (m.offers || 0);
-        });
-      }
-
-      setStats({
-        activeTasks: activeTasksData ? activeTasksData.length : 0,
-        totalCVs,
-        offers: totalOffers
-      });
-
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return <div style={{ padding: '24px' }}>Loading Dashboard...</div>;
-  }
-
-  return (
-    <>
-        <header style={{marginBottom: '32px'}}>
-          <h2 style={{fontSize: '2rem'}}>Welcome back!</h2>
-          <p style={{color: 'var(--text-secondary)'}}>Here is an overview of the recruitment progress.</p>
+      {/* Main Content Area */}
+      <div className="main-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+        
+        {/* Top Header */}
+        <header className="header glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 32px', margin: '0 0 24px 0', borderRadius: '0', borderLeft: 'none', borderRight: 'none', borderTop: 'none', zIndex: 10 }}>
+          <h2 style={{ fontSize: '1.4rem' }}>
+            {activeTab === 'DASHBOARD' ? 'Recruitment Dashboard' : 
+             activeTab === 'TASK_BOARD' ? 'Task Board' : 
+             'Task List (Admin)'}
+          </h2>
+          
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <button 
+              className="btn glass-panel" 
+              onClick={toggleTheme}
+              style={{ padding: '8px 12px', fontSize: '1.2rem', color: 'var(--text-main)' }}
+              title="Toggle Theme"
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                🔔
+              </div>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-color), #8b5cf6)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold' }}>
+                {session.user.email.charAt(0).toUpperCase()}
+              </div>
+            </div>
+          </div>
         </header>
 
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '32px'}}>
-           {/* Metric Cards */}
-           <div className="glass-panel" style={{padding: '24px'}}>
-              <h3 style={{color: 'var(--text-secondary)', fontSize: '1rem', fontWeight: 500}}>Total CVs</h3>
-              <p style={{fontSize: '2.5rem', fontWeight: 700, color: 'var(--primary-color)'}}>{stats.totalCVs}</p>
-           </div>
-           <div className="glass-panel" style={{padding: '24px'}}>
-              <h3 style={{color: 'var(--text-secondary)', fontSize: '1rem', fontWeight: 500}}>Active Tasks</h3>
-              <p style={{fontSize: '2.5rem', fontWeight: 700, color: 'var(--warning)'}}>{stats.activeTasks}</p>
-           </div>
-           <div className="glass-panel" style={{padding: '24px'}}>
-              <h3 style={{color: 'var(--text-secondary)', fontSize: '1rem', fontWeight: 500}}>Offers Accepted</h3>
-              <p style={{fontSize: '2.5rem', fontWeight: 700, color: 'var(--success)'}}>{stats.offers}</p>
-           </div>
+        {/* Dynamic View Content */}
+        <div className="content-area" style={{ flex: 1, overflowY: 'auto', padding: '0 32px 32px 32px' }}>
+          {activeTab === 'DASHBOARD' && <Dashboard session={session} />}
+          {activeTab === 'TASK_BOARD' && <TaskBoard session={session} />}
+          {activeTab === 'TASK_LIST' && <TaskList session={session} />}
         </div>
-
-        <div className="glass-panel" style={{padding: '24px', height: '400px'}}>
-           <h3>Task Status Distribution</h3>
-           <p style={{color: 'var(--text-secondary)', margin: '16px 0'}}>
-             Tạo task mới trong tab "Tasks" hoặc cập nhật Daily Report để hệ thống tổng hợp thêm dữ liệu thực tế tại đây nhé!
-           </p>
-           <div style={{width: '100%', height: '70%', display: 'flex', alignItems: 'flex-end', gap: '20px', marginTop: '20px'}}>
-              {/* Fake Bar Chart */}
-              <div style={{flex: 1, background: 'var(--primary-color)', height: '10%', borderRadius: '4px 4px 0 0', opacity: stats.activeTasks > 0 ? 0.8 : 0.2}}></div>
-              <div style={{flex: 1, background: 'var(--warning)', height: '20%', borderRadius: '4px 4px 0 0', opacity: stats.activeTasks > 0 ? 0.8 : 0.2}}></div>
-              <div style={{flex: 1, background: 'var(--success)', height: '15%', borderRadius: '4px 4px 0 0', opacity: stats.activeTasks > 0 ? 0.8 : 0.2}}></div>
-           </div>
-        </div>
-    </>
+        
+      </div>
+    </div>
   );
 }
 

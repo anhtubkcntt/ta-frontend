@@ -6,7 +6,8 @@ export default function TaskForm({ onClose, onTaskAdded }) {
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('RECRUITMENT');
   const [deadline, setDeadline] = useState('');
-  const [picId, setPicId] = useState('');
+  const [picIds, setPicIds] = useState([]);
+  const [supporterIds, setSupporterIds] = useState([]);
   const [status, setStatus] = useState('PENDING');
   
   const [profiles, setProfiles] = useState([]);
@@ -27,6 +28,14 @@ export default function TaskForm({ onClose, onTaskAdded }) {
     }
   };
 
+  const handlePicToggle = (id) => {
+    setPicIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+  };
+
+  const handleSupporterToggle = (id) => {
+    setSupporterIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -35,12 +44,16 @@ export default function TaskForm({ onClose, onTaskAdded }) {
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
 
+      // If no PIC selected, optionally default to the creator
+      const finalPicIds = picIds.length > 0 ? picIds : [userData.user.id];
+
       const newTask = {
         name,
         content,
         category,
         deadline: deadline || null,
-        pic_id: picId || userData.user.id,
+        pic_ids: finalPicIds,
+        supporter_ids: supporterIds,
         status: status
       };
 
@@ -76,10 +89,10 @@ export default function TaskForm({ onClose, onTaskAdded }) {
       display: 'flex', justifyContent: 'center', alignItems: 'center',
       zIndex: 1000
     }}>
-      <div className="glass-panel" style={{ padding: '32px', width: '100%', maxWidth: '500px' }}>
+      <div className="glass-panel" style={{ padding: '32px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
           <h2>Create New Task</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.2rem' }}>&times;</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', fontSize: '1.5rem' }}>&times;</button>
         </div>
         
         <form onSubmit={handleSubmit}>
@@ -94,7 +107,6 @@ export default function TaskForm({ onClose, onTaskAdded }) {
               <select 
                 value={category} 
                 onChange={e => setCategory(e.target.value)}
-                style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'white' }}
               >
                 <option value="RECRUITMENT">Recruitment (Tuyển dụng)</option>
                 <option value="EB">Employer Branding</option>
@@ -102,17 +114,44 @@ export default function TaskForm({ onClose, onTaskAdded }) {
               </select>
             </div>
             <div className="input-group">
-              <label>Assignee</label>
-              <select 
-                value={picId} 
-                onChange={e => setPicId(e.target.value)}
-                style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'white' }}
-              >
-                <option value="">-- Chọn người nhận --</option>
-                {profiles.map(p => (
-                  <option key={p.id} value={p.id}>{p.email}</option>
+              <label>Deadline</label>
+              <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="input-group">
+              <label>PICs (Người phụ trách)</label>
+              <div style={{ maxHeight: '150px', overflowY: 'auto', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '8px' }}>
+                {profiles.length === 0 ? <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Loading...</p> : profiles.map(p => (
+                  <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', cursor: 'pointer', margin: 0, fontSize: '0.9rem' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={picIds.includes(p.id)} 
+                      onChange={() => handlePicToggle(p.id)} 
+                      style={{ width: 'auto', margin: 0 }}
+                    />
+                    {p.email.split('@')[0]}
+                  </label>
                 ))}
-              </select>
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label>Supporters (Người hỗ trợ)</label>
+              <div style={{ maxHeight: '150px', overflowY: 'auto', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '8px' }}>
+                {profiles.length === 0 ? <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Loading...</p> : profiles.map(p => (
+                  <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', cursor: 'pointer', margin: 0, fontSize: '0.9rem' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={supporterIds.includes(p.id)} 
+                      onChange={() => handleSupporterToggle(p.id)} 
+                      style={{ width: 'auto', margin: 0 }}
+                    />
+                    {p.email.split('@')[0]}
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
           
@@ -121,31 +160,24 @@ export default function TaskForm({ onClose, onTaskAdded }) {
             <textarea 
               value={content} 
               onChange={e => setContent(e.target.value)}
-              style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'white', minHeight: '80px' }}
+              style={{ minHeight: '80px' }}
             />
           </div>
           
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div className="input-group">
-              <label>Deadline</label>
-              <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} />
-            </div>
-            <div className="input-group">
-              <label>Status</label>
-              <select 
-                value={status} 
-                onChange={e => setStatus(e.target.value)}
-                style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'white' }}
-              >
-                <option value="PENDING">Pending</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="DONE">Done</option>
-              </select>
-            </div>
+          <div className="input-group">
+            <label>Status</label>
+            <select 
+              value={status} 
+              onChange={e => setStatus(e.target.value)}
+            >
+              <option value="PENDING">Pending</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="DONE">Done</option>
+            </select>
           </div>
           
           <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
-            <button type="button" className="btn" onClick={onClose} style={{ flex: 1, backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'white' }}>Cancel</button>
+            <button type="button" className="btn" onClick={onClose} style={{ flex: 1 }}>Cancel</button>
             <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={loading}>
               {loading ? 'Creating...' : 'Create Task'}
             </button>

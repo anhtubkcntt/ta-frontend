@@ -11,6 +11,8 @@ export default function TaskBoard({ session }) {
   const [filter, setFilter] = useState('ALL'); // Category
   const [assigneeFilter, setAssigneeFilter] = useState('ALL');
   const [timeFilter, setTimeFilter] = useState('ALL');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
   
   const [selectedTask, setSelectedTask] = useState(null);
 
@@ -84,12 +86,28 @@ export default function TaskBoard({ session }) {
       return taskDate >= startOfWeek;
     }
     
+    if (filterType === 'CUSTOM') {
+      let pass = true;
+      if (customStart) {
+        const start = new Date(customStart);
+        if (taskDate < start) pass = false;
+      }
+      if (customEnd) {
+        const end = new Date(customEnd);
+        end.setHours(23, 59, 59, 999);
+        if (taskDate > end) pass = false;
+      }
+      return pass;
+    }
+    
     return true;
   };
 
   const filteredTasks = tasks.filter(task => {
     const passCategory = filter === 'ALL' || task.category === filter;
-    const passAssignee = assigneeFilter === 'ALL' || task.pic_id === assigneeFilter;
+    const passAssignee = assigneeFilter === 'ALL' || 
+                         (assigneeFilter === 'UNASSIGNED' ? (!task.pic_ids || task.pic_ids.length === 0) : 
+                         (task.pic_ids && task.pic_ids.includes(assigneeFilter)));
     const passTime = filterByDate(task.created_at, timeFilter);
     return passCategory && passAssignee && passTime;
   });
@@ -127,13 +145,13 @@ export default function TaskBoard({ session }) {
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
           >
-            <option value="ALL">All Assignees</option>
+            <option value="ALL">All PICs</option>
             <option value="UNASSIGNED">Unassigned</option>
             {Object.values(profiles).map(p => (
               <option key={p.id} value={p.id}>{p.email.split('@')[0]}</option>
             ))}
           </select>
-
+          
           <select 
             className="btn glass-panel" 
             style={{ color: 'var(--text-main)' }}
@@ -143,7 +161,28 @@ export default function TaskBoard({ session }) {
             <option value="ALL">All Time</option>
             <option value="TODAY">Created Today</option>
             <option value="THIS_WEEK">Created This Week</option>
+            <option value="CUSTOM">Custom Range</option>
           </select>
+          
+          {timeFilter === 'CUSTOM' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input 
+                type="date" 
+                className="btn glass-panel" 
+                style={{ padding: '8px', color: 'var(--text-main)', fontSize: '0.85rem' }} 
+                value={customStart}
+                onChange={e => setCustomStart(e.target.value)}
+              />
+              <span style={{ color: 'var(--text-secondary)' }}>to</span>
+              <input 
+                type="date" 
+                className="btn glass-panel" 
+                style={{ padding: '8px', color: 'var(--text-main)', fontSize: '0.85rem' }} 
+                value={customEnd}
+                onChange={e => setCustomEnd(e.target.value)}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -186,12 +225,13 @@ export default function TaskBoard({ session }) {
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border-color)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'var(--primary-color)', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                          {profiles[task.pic_id] ? profiles[task.pic_id].email.charAt(0).toUpperCase() : '?'}
-                        </div>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }} title={profiles[task.pic_id]?.email}>
-                          {profiles[task.pic_id] ? profiles[task.pic_id].email.split('@')[0] : 'Unassigned'}
-                        </span>
+                        {task.pic_ids && task.pic_ids.length > 0 ? (
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                            {task.pic_ids.map(id => profiles[id]?.email.split('@')[0]).filter(Boolean).join(', ')}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Unassigned</span>
+                        )}
                       </div>
                       <span style={{ fontSize: '0.75rem', color: task.deadline ? 'var(--danger)' : 'var(--text-secondary)' }}>
                         {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No date'}
