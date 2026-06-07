@@ -8,6 +8,15 @@ export default function TaskDetail({ task, onBack, session }) {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: task.name || '',
+    content: task.content || '',
+    category: task.category || 'RECRUITMENT',
+    deadline: task.deadline || '',
+    status: task.status || 'NOT_STARTED'
+  });
+  
   // Daily report form states
   const [approached, setApproached] = useState(0);
   const [called, setCalled] = useState(0);
@@ -55,6 +64,28 @@ export default function TaskDetail({ task, onBack, session }) {
       console.error('Error fetching task details:', error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateTask = async () => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({
+          name: editForm.name,
+          content: editForm.content,
+          category: editForm.category,
+          deadline: editForm.deadline || null,
+          status: editForm.status
+        })
+        .eq('id', currentTask.id);
+        
+      if (error) throw error;
+      
+      setCurrentTask({ ...currentTask, ...editForm });
+      setIsEditing(false);
+    } catch (err) {
+      alert('Error updating task: ' + err.message);
     }
   };
 
@@ -140,17 +171,88 @@ export default function TaskDetail({ task, onBack, session }) {
 
   return (
     <div className="glass-panel" style={{ padding: '24px', minHeight: '600px' }}>
-      <button onClick={onBack} className="btn" style={{ marginBottom: '20px', backgroundColor: 'var(--surface-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
-        &larr; Back to Tasks
-      </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <button onClick={onBack} className="btn" style={{ backgroundColor: 'var(--surface-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
+          &larr; Back to Tasks
+        </button>
+        {!isEditing ? (
+          <button onClick={() => setIsEditing(true)} className="btn btn-primary">
+            Edit Task Info
+          </button>
+        ) : (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => {
+              setIsEditing(false);
+              setEditForm({
+                name: currentTask.name || '',
+                content: currentTask.content || '',
+                category: currentTask.category || 'RECRUITMENT',
+                deadline: currentTask.deadline || '',
+                status: currentTask.status || 'NOT_STARTED'
+              });
+            }} className="btn">Cancel</button>
+            <button onClick={handleUpdateTask} className="btn btn-primary">Save Changes</button>
+          </div>
+        )}
+      </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <span className="badge" style={{ color: 'var(--primary-color)', borderColor: 'var(--primary-color)' }}>
-            {currentTask.category}
-          </span>
-          <h2 style={{ marginTop: '12px', fontSize: '2rem' }}>{currentTask.name}</h2>
-          <p style={{ color: 'var(--text-secondary)', marginTop: '8px', whiteSpace: 'pre-wrap' }}>{currentTask.content}</p>
+        <div style={{ flex: 1, marginRight: '24px' }}>
+          {!isEditing ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span className="badge" style={{ color: 'var(--primary-color)', borderColor: 'var(--primary-color)' }}>
+                  {currentTask.category}
+                </span>
+                <span style={{ fontSize: '0.85rem', color: currentTask.deadline ? 'var(--danger)' : 'var(--text-secondary)' }}>
+                  Deadline: {currentTask.deadline ? new Date(currentTask.deadline).toLocaleDateString() : 'None'}
+                </span>
+              </div>
+              <h2 style={{ marginTop: '12px', fontSize: '2rem' }}>{currentTask.name}</h2>
+              <p style={{ color: 'var(--text-secondary)', marginTop: '8px', whiteSpace: 'pre-wrap' }}>{currentTask.content}</p>
+            </>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+              <input 
+                type="text" 
+                style={{ fontSize: '1.5rem', fontWeight: 'bold', padding: '12px', width: '100%', backgroundColor: 'var(--bg-color)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '6px' }} 
+                value={editForm.name} 
+                onChange={e => setEditForm({...editForm, name: e.target.value})} 
+                placeholder="Task Name"
+              />
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Category</label>
+                  <select className="btn glass-panel" style={{ color: 'var(--text-main)' }} value={editForm.category} onChange={e => setEditForm({...editForm, category: e.target.value})}>
+                    <option value="RECRUITMENT">Recruitment</option>
+                    <option value="EB">Employer Branding</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Deadline</label>
+                  <input type="date" className="btn glass-panel" style={{ color: 'var(--text-main)' }} value={editForm.deadline} onChange={e => setEditForm({...editForm, deadline: e.target.value})} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Status</label>
+                  <select className="btn glass-panel" style={{ color: 'var(--text-main)' }} value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})}>
+                    <option value="NOT_STARTED">Not Started</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="DONE">Done</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Description</label>
+                <textarea 
+                  style={{ width: '100%', minHeight: '100px', padding: '12px', backgroundColor: 'var(--bg-color)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '6px' }} 
+                  value={editForm.content} 
+                  onChange={e => setEditForm({...editForm, content: e.target.value})} 
+                />
+              </div>
+            </div>
+          )}
           
           <div style={{ marginTop: '24px', display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
             <div>
@@ -187,17 +289,21 @@ export default function TaskDetail({ task, onBack, session }) {
             </div>
           </div>
         </div>
-        <span className="badge" style={{ 
-            padding: '6px 12px',
-            backgroundColor: currentTask.status === 'DONE' ? 'rgba(16, 185, 129, 0.1)' : 
-                             currentTask.status === 'IN_PROGRESS' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(148, 163, 184, 0.1)',
-            color: currentTask.status === 'DONE' ? 'var(--success)' : 
-                   currentTask.status === 'IN_PROGRESS' ? 'var(--warning)' : 'var(--text-secondary)',
-            borderColor: currentTask.status === 'DONE' ? 'var(--success)' : 
-                         currentTask.status === 'IN_PROGRESS' ? 'var(--warning)' : 'var(--border-color)'
-        }}>
-          {currentTask.status.replace('_', ' ')}
-        </span>
+        {!isEditing && (
+          <span className="badge" style={{ 
+              padding: '6px 12px',
+              backgroundColor: currentTask.status === 'DONE' ? 'rgba(16, 185, 129, 0.1)' : 
+                               currentTask.status === 'IN_PROGRESS' ? 'rgba(245, 158, 11, 0.1)' :
+                               currentTask.status === 'PENDING' ? 'rgba(148, 163, 184, 0.1)' : 'rgba(148, 163, 184, 0.2)',
+              color: currentTask.status === 'DONE' ? 'var(--success)' : 
+                     currentTask.status === 'IN_PROGRESS' ? 'var(--warning)' : 
+                     currentTask.status === 'PENDING' ? 'var(--text-secondary)' : '#94a3b8',
+              borderColor: currentTask.status === 'DONE' ? 'var(--success)' : 
+                           currentTask.status === 'IN_PROGRESS' ? 'var(--warning)' : 'var(--border-color)'
+          }}>
+            {currentTask.status.replace('_', ' ')}
+          </span>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '32px' }}>
