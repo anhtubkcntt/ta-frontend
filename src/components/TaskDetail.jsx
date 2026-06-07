@@ -18,8 +18,6 @@ export default function TaskDetail({ task, onBack, session }) {
   });
   
   // Daily report form states
-  const [approached, setApproached] = useState(0);
-  const [called, setCalled] = useState(0);
   const [cvReceived, setCvReceived] = useState(0);
   const [cvPassScreening, setCvPassScreening] = useState(0);
   const [cvInterviewNsc, setCvInterviewNsc] = useState(0);
@@ -122,8 +120,6 @@ export default function TaskDetail({ task, onBack, session }) {
       const newReport = {
         task_id: currentTask.id,
         user_id: session.user.id,
-        approached_candidates: approached,
-        called_candidates: called,
         cv_received: cvReceived,
         cv_pass_screening: cvPassScreening,
         cv_interview_nsc: cvInterviewNsc,
@@ -153,7 +149,7 @@ export default function TaskDetail({ task, onBack, session }) {
       }
 
       // Reset form and refresh
-      setApproached(0); setCalled(0); setCvReceived(0);
+      setCvReceived(0);
       setCvPassScreening(0); setCvInterviewNsc(0); setCvInterviewClient(0);
       setOffers(0); setOnboardings(0); setPassProbations(0);
       setReportNotes('');
@@ -315,14 +311,6 @@ export default function TaskDetail({ task, onBack, session }) {
             {currentTask.category === 'RECRUITMENT' && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 <div className="input-group" style={{ marginBottom: '0' }}>
-                  <label style={{ fontSize: '0.8rem' }}>Approached</label>
-                  <input type="number" min="0" value={approached} onChange={e => setApproached(e.target.value)} />
-                </div>
-                <div className="input-group" style={{ marginBottom: '0' }}>
-                  <label style={{ fontSize: '0.8rem' }}>Called</label>
-                  <input type="number" min="0" value={called} onChange={e => setCalled(e.target.value)} />
-                </div>
-                <div className="input-group" style={{ marginBottom: '0' }}>
                   <label style={{ fontSize: '0.8rem', color: 'var(--primary-color)' }}>Total CVs</label>
                   <input type="number" min="0" value={cvReceived} onChange={e => setCvReceived(e.target.value)} />
                 </div>
@@ -403,8 +391,6 @@ export default function TaskDetail({ task, onBack, session }) {
                     <p style={{ fontSize: '0.95rem', marginTop: '4px' }}>{report.notes}</p>
                     {currentTask.category === 'RECRUITMENT' && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                        <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>Appr: {report.approached_candidates || 0}</span>
-                        <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>Call: {report.called_candidates || 0}</span>
                         <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>CVs: {report.cv_received || 0}</span>
                         <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>Pass Screen: {report.cv_pass_screening || 0}</span>
                         <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>Int NSC: {report.cv_interview_nsc || 0}</span>

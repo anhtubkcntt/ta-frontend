@@ -8,8 +8,6 @@ export default function Dashboard({ session }) {
   const [customEnd, setCustomEnd] = useState('');
   
   const [metrics, setMetrics] = useState({
-    approached: 0,
-    called: 0,
     cv_received: 0,
     cv_pass_screening: 0,
     cv_interview_nsc: 0,
@@ -95,14 +93,12 @@ export default function Dashboard({ session }) {
       setTaskMetrics(tStats);
 
       const totals = {
-        approached: 0, called: 0, cv_received: 0, cv_pass_screening: 0, cv_interview_nsc: 0,
+        cv_received: 0, cv_pass_screening: 0, cv_interview_nsc: 0,
         cv_interview_client: 0, offers: 0, onboardings: 0, pass_probations: 0
       };
 
       if (data) {
         data.forEach(report => {
-          totals.approached += parseInt(report.approached_candidates || 0);
-          totals.called += parseInt(report.called_candidates || 0);
           totals.cv_received += parseInt(report.cv_received || 0);
           totals.cv_pass_screening += parseInt(report.cv_pass_screening || 0);
           totals.cv_interview_nsc += parseInt(report.cv_interview_nsc || 0);
@@ -122,8 +118,6 @@ export default function Dashboard({ session }) {
   };
 
   const statCards = [
-    { title: 'Approached', value: metrics.approached, color: '#94a3b8' },
-    { title: 'Called', value: metrics.called, color: '#64748b' },
     { title: 'Total CVs', value: metrics.cv_received, color: 'var(--primary-color)' },
     { title: 'Pass Screen', value: metrics.cv_pass_screening, color: '#3b82f6' },
     { title: 'Int. NSC', value: metrics.cv_interview_nsc, color: '#8b5cf6' },
