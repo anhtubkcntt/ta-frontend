@@ -118,6 +118,7 @@ export default function TaskBoard({ session }) {
 
   const columns = [
     { id: 'PENDING', title: 'Pending', color: 'var(--text-secondary)' },
+    { id: 'NOT_STARTED', title: 'Not Started', color: '#94a3b8' },
     { id: 'IN_PROGRESS', title: 'In Progress', color: 'var(--warning)' },
     { id: 'DONE', title: 'Done', color: 'var(--success)' }
   ];
@@ -215,9 +216,18 @@ export default function TaskBoard({ session }) {
                       </span>
                       {/* Action buttons to change status */}
                       <div style={{ display: 'flex', gap: '4px' }} onClick={e => e.stopPropagation()}>
-                        {col.id !== 'PENDING' && <button onClick={() => updateTaskStatus(task.id, 'PENDING')} title="Move to Pending" style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>&larr;</button>}
-                        {col.id === 'PENDING' && <button onClick={() => updateTaskStatus(task.id, 'IN_PROGRESS')} title="Move to In Progress" style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>&rarr;</button>}
-                        {col.id === 'IN_PROGRESS' && <button onClick={() => updateTaskStatus(task.id, 'DONE')} title="Move to Done" style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>&rarr;</button>}
+                        {(() => {
+                          const order = ['PENDING', 'NOT_STARTED', 'IN_PROGRESS', 'DONE'];
+                          const idx = order.indexOf(col.id);
+                          const prev = idx > 0 ? order[idx - 1] : null;
+                          const next = idx < order.length - 1 ? order[idx + 1] : null;
+                          return (
+                            <>
+                              {prev && <button onClick={() => updateTaskStatus(task.id, prev)} title={`Move to ${prev.replace('_',' ')}`} style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>&larr;</button>}
+                              {next && <button onClick={() => updateTaskStatus(task.id, next)} title={`Move to ${next.replace('_',' ')}`} style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>&rarr;</button>}
+                            </>
+                          )
+                        })()}
                       </div>
                     </div>
                     

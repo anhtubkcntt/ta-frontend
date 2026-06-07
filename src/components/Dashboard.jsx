@@ -21,7 +21,7 @@ export default function Dashboard({ session }) {
 
   const [taskMetrics, setTaskMetrics] = useState({
     categories: { RECRUITMENT: 0, EB: 0, OTHER: 0 },
-    statuses: { PENDING: 0, IN_PROGRESS: 0, DONE: 0 },
+    statuses: { NOT_STARTED: 0, PENDING: 0, IN_PROGRESS: 0, DONE: 0 },
     total: 0
   });
 
@@ -82,7 +82,7 @@ export default function Dashboard({ session }) {
 
       const tStats = {
         categories: { RECRUITMENT: 0, EB: 0, OTHER: 0 },
-        statuses: { PENDING: 0, IN_PROGRESS: 0, DONE: 0 },
+        statuses: { NOT_STARTED: 0, PENDING: 0, IN_PROGRESS: 0, DONE: 0 },
         total: tasksData ? tasksData.length : 0
       };
 
@@ -208,6 +208,9 @@ export default function Dashboard({ session }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>Pending</span><span className="badge" style={{ backgroundColor: '#64748b', color: 'white', padding: '4px 12px' }}>{taskMetrics.statuses.PENDING}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Not Started</span><span className="badge" style={{ backgroundColor: '#94a3b8', color: 'white', padding: '4px 12px' }}>{taskMetrics.statuses.NOT_STARTED}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>In Progress</span><span className="badge" style={{ backgroundColor: 'var(--warning)', color: 'white', padding: '4px 12px' }}>{taskMetrics.statuses.IN_PROGRESS}</span>

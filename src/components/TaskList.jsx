@@ -227,9 +227,11 @@ export default function TaskList({ session }) {
                   <td style={{ padding: '12px' }}>
                     <span className="badge" style={{ 
                         backgroundColor: task.status === 'DONE' ? 'rgba(16, 185, 129, 0.1)' : 
-                                         task.status === 'IN_PROGRESS' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(148, 163, 184, 0.1)',
+                                         task.status === 'IN_PROGRESS' ? 'rgba(245, 158, 11, 0.1)' :
+                                         task.status === 'PENDING' ? 'rgba(148, 163, 184, 0.1)' : 'rgba(148, 163, 184, 0.2)',
                         color: task.status === 'DONE' ? 'var(--success)' : 
-                               task.status === 'IN_PROGRESS' ? 'var(--warning)' : 'var(--text-secondary)'
+                               task.status === 'IN_PROGRESS' ? 'var(--warning)' : 
+                               task.status === 'PENDING' ? 'var(--text-secondary)' : '#64748b'
                     }}>
                       {task.status.replace('_', ' ')}
                     </span>

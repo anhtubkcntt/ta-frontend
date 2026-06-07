@@ -8,7 +8,7 @@ export default function TaskForm({ onClose, onTaskAdded }) {
   const [deadline, setDeadline] = useState('');
   const [picIds, setPicIds] = useState([]);
   const [supporterIds, setSupporterIds] = useState([]);
-  const [status, setStatus] = useState('PENDING');
+  const [status, setStatus] = useState('NOT_STARTED');
   
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -171,6 +171,7 @@ export default function TaskForm({ onClose, onTaskAdded }) {
               onChange={e => setStatus(e.target.value)}
             >
               <option value="PENDING">Pending</option>
+              <option value="NOT_STARTED">Not Started</option>
               <option value="IN_PROGRESS">In Progress</option>
               <option value="DONE">Done</option>
             </select>
