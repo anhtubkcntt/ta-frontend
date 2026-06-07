@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import TaskForm from './TaskForm';
 import TaskDetail from './TaskDetail';
+import { logActivity } from '../utils/logger';
 
 export default function TaskList({ session }) {
   const [tasks, setTasks] = useState([]);
@@ -55,16 +56,27 @@ export default function TaskList({ session }) {
     }
   };
 
-  const handleDelete = async (taskId) => {
+  const handleDelete = async (task) => {
     if (!window.confirm('Are you sure you want to delete this task?')) return;
     
     try {
       const { error } = await supabase
         .from('tasks')
         .delete()
-        .eq('id', taskId);
+        .eq('id', task.id);
         
       if (error) throw error;
+      
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user) {
+        await logActivity(
+          userData.user.id,
+          'DELETE',
+          'TASK',
+          `Deleted task "${task.name}"`
+        );
+      }
+      
       fetchData();
     } catch (error) {
       alert('Error deleting task: ' + error.message);
@@ -238,7 +250,7 @@ export default function TaskList({ session }) {
                   </td>
                   <td style={{ padding: '12px' }}>
                     <button className="btn btn-primary" style={{ padding: '4px 8px', fontSize: '0.8rem', marginRight: '8px' }} onClick={() => setSelectedTask(task)}>View</button>
-                    <button className="btn" style={{ padding: '4px 8px', fontSize: '0.8rem', background: 'var(--danger)', color: 'white', border: 'none' }} onClick={() => handleDelete(task.id)}>Delete</button>
+                    <button className="btn" style={{ padding: '4px 8px', fontSize: '0.8rem', background: 'var(--danger)', color: 'white', border: 'none' }} onClick={() => handleDelete(task)}>Delete</button>
                   </td>
                 </tr>
               ))}

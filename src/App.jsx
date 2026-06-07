@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient';
 import TaskBoard from './components/TaskBoard';
 import TaskList from './components/TaskList';
 import Dashboard from './components/Dashboard';
+import ActivityFeed from './components/ActivityFeed';
 import './index.css';
 
 function App() {
@@ -160,6 +161,18 @@ function MainLayout({ session, toggleTheme, theme }) {
           >
             <span style={{ fontSize: '1.2rem' }}>📝</span> List View
           </li>
+          <li 
+            className={activeTab === 'ACTIVITY' ? 'active' : ''} 
+            onClick={() => setActiveTab('ACTIVITY')}
+            style={{ 
+              padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', 
+              backgroundColor: activeTab === 'ACTIVITY' ? 'var(--primary-color)' : 'transparent',
+              color: activeTab === 'ACTIVITY' ? 'white' : 'var(--text-secondary)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <span style={{ fontSize: '1.2rem' }}>🕒</span> Activity Logs
+          </li>
         </ul>
         
         <div style={{ marginTop: 'auto', padding: '20px', borderTop: '1px solid var(--border-color)' }}>
@@ -184,6 +197,7 @@ function MainLayout({ session, toggleTheme, theme }) {
           <h2 style={{ fontSize: '1.4rem' }}>
             {activeTab === 'DASHBOARD' ? 'Recruitment Dashboard' : 
              activeTab === 'TASK_BOARD' ? 'Task Board' : 
+             activeTab === 'ACTIVITY' ? 'System Activity Logs' :
              'Task List (Admin)'}
           </h2>
           
@@ -213,6 +227,7 @@ function MainLayout({ session, toggleTheme, theme }) {
           {activeTab === 'DASHBOARD' && <Dashboard session={session} />}
           {activeTab === 'TASK_BOARD' && <TaskBoard session={session} />}
           {activeTab === 'TASK_LIST' && <TaskList session={session} />}
+          {activeTab === 'ACTIVITY' && <ActivityFeed />}
         </div>
         
       </div>

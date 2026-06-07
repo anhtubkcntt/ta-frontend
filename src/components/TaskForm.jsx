@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
+import { logActivity } from '../utils/logger';
 
 export default function TaskForm({ onClose, onTaskAdded }) {
   const [name, setName] = useState('');
@@ -63,6 +64,16 @@ export default function TaskForm({ onClose, onTaskAdded }) {
         .select();
 
       if (error) throw error;
+      
+      // Log creation
+      if (data && data.length > 0) {
+        await logActivity(
+          userData.user.id, 
+          'CREATE', 
+          'TASK', 
+          `Created a new task: "${newTask.name}"`
+        );
+      }
       
       // If it's a recruitment task, create the metrics record
       if (category === 'RECRUITMENT' && data && data.length > 0) {

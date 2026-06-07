@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
+import { logActivity } from '../utils/logger';
 
 export default function TaskDetail({ task, onBack, session }) {
   const [currentTask, setCurrentTask] = useState(task);
@@ -80,6 +81,8 @@ export default function TaskDetail({ task, onBack, session }) {
         
       if (error) throw error;
       
+      await logActivity(session.user.id, 'UPDATE', 'TASK', `Edited task info for "${currentTask.name}"`);
+      
       setCurrentTask({ ...currentTask, ...editForm });
       setIsEditing(false);
     } catch (err) {
@@ -96,6 +99,7 @@ export default function TaskDetail({ task, onBack, session }) {
     try {
       const { error } = await supabase.from('tasks').update({ pic_ids: newPicIds }).eq('id', currentTask.id);
       if (error) throw error;
+      await logActivity(session.user.id, 'UPDATE', 'TASK', `Updated PICs for "${currentTask.name}"`);
       setCurrentTask({ ...currentTask, pic_ids: newPicIds });
     } catch (err) { alert(err.message); }
   };
@@ -109,6 +113,7 @@ export default function TaskDetail({ task, onBack, session }) {
     try {
       const { error } = await supabase.from('tasks').update({ supporter_ids: newSuppIds }).eq('id', currentTask.id);
       if (error) throw error;
+      await logActivity(session.user.id, 'UPDATE', 'TASK', `Updated Supporters for "${currentTask.name}"`);
       setCurrentTask({ ...currentTask, supporter_ids: newSuppIds });
     } catch (err) { alert(err.message); }
   };
@@ -135,6 +140,8 @@ export default function TaskDetail({ task, onBack, session }) {
         .insert([newReport]);
 
       if (error) throw error;
+      
+      await logActivity(session.user.id, 'CREATE', 'REPORT', `Submitted daily report for "${currentTask.name}"`);
 
       // Update total metrics if recruitment task
       if (currentTask.category === 'RECRUITMENT' && metrics) {
@@ -385,10 +392,17 @@ export default function TaskDetail({ task, onBack, session }) {
               <p style={{ color: 'var(--text-secondary)', marginTop: '12px' }}>No reports submitted yet.</p>
             ) : (
               <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {reports.map(report => (
+                {reports.map(report => {
+                  const reporter = profiles.find(p => p.id === report.user_id);
+                  const reporterName = reporter ? reporter.email.split('@')[0] : 'Unknown User';
+                  
+                  return (
                   <div key={report.id} style={{ borderLeft: '3px solid var(--primary-color)', paddingLeft: '12px' }}>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{new Date(report.report_date).toLocaleDateString()}</p>
-                    <p style={{ fontSize: '0.95rem', marginTop: '4px' }}>{report.notes}</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>{reporterName}</span>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{new Date(report.report_date).toLocaleDateString()}</span>
+                    </div>
+                    <p style={{ fontSize: '0.95rem', margin: 0 }}>{report.notes}</p>
                     {currentTask.category === 'RECRUITMENT' && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                         <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>CVs: {report.cv_received || 0}</span>
@@ -401,7 +415,8 @@ export default function TaskDetail({ task, onBack, session }) {
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

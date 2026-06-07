@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import TaskDetail from './TaskDetail';
+import { logActivity } from '../utils/logger';
 
 export default function TaskBoard({ session }) {
   const [tasks, setTasks] = useState([]);
@@ -51,17 +52,26 @@ export default function TaskBoard({ session }) {
     }
   };
 
-  const updateTaskStatus = async (taskId, newStatus) => {
+  const updateTaskStatus = async (task, newStatus) => {
     try {
       const { error } = await supabase
         .from('tasks')
         .update({ status: newStatus })
-        .eq('id', taskId);
+        .eq('id', task.id);
         
       if (error) throw error;
       
-      // Update local state
-      setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user) {
+        await logActivity(
+          userData.user.id,
+          'UPDATE',
+          'TASK',
+          `Moved task "${task.name}" to ${newStatus.replace('_', ' ')}`
+        );
+      }
+      
+      fetchData();
     } catch (error) {
       alert('Error updating status: ' + error.message);
     }
@@ -223,8 +233,8 @@ export default function TaskBoard({ session }) {
                           const next = idx < order.length - 1 ? order[idx + 1] : null;
                           return (
                             <>
-                              {prev && <button onClick={() => updateTaskStatus(task.id, prev)} title={`Move to ${prev.replace('_',' ')}`} style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>&larr;</button>}
-                              {next && <button onClick={() => updateTaskStatus(task.id, next)} title={`Move to ${next.replace('_',' ')}`} style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>&rarr;</button>}
+                              {prev && <button onClick={() => updateTaskStatus(task, prev)} title={`Move to ${prev.replace('_',' ')}`} style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>&larr;</button>}
+                              {next && <button onClick={() => updateTaskStatus(task, next)} title={`Move to ${next.replace('_',' ')}`} style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px' }}>&rarr;</button>}
                             </>
                           )
                         })()}
