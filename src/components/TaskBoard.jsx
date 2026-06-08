@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import TaskDetail from './TaskDetail';
+import TaskForm from './TaskForm';
 import { logActivity } from '../utils/logger';
 
-export default function TaskBoard({ session }) {
+export default function TaskBoard({ session, isAdmin }) {
   const [tasks, setTasks] = useState([]);
   const [profiles, setProfiles] = useState({});
   const [loading, setLoading] = useState(true);
@@ -16,6 +17,7 @@ export default function TaskBoard({ session }) {
   const [customEnd, setCustomEnd] = useState('');
   
   const [selectedTask, setSelectedTask] = useState(null);
+  const [showTaskForm, setShowTaskForm] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -123,7 +125,14 @@ export default function TaskBoard({ session }) {
   });
 
   if (selectedTask) {
-    return <TaskDetail task={selectedTask} onBack={() => {setSelectedTask(null); fetchData();}} session={session} />;
+    return (
+      <TaskDetail 
+        task={selectedTask} 
+        onBack={() => {setSelectedTask(null); fetchData();}} 
+        session={session} 
+        isAdmin={isAdmin}
+      />
+    );
   }
 
   const columns = [
@@ -135,9 +144,21 @@ export default function TaskBoard({ session }) {
 
   return (
     <div className="glass-panel" style={{ padding: '24px', minHeight: '600px', position: 'relative' }}>
+      {showTaskForm && (
+        <TaskForm 
+          onClose={() => setShowTaskForm(false)} 
+          onSuccess={() => { setShowTaskForm(false); fetchData(); }} 
+        />
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <h2>Task Board (Kanban)</h2>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+          {isAdmin && (
+            <button className="btn btn-primary" onClick={() => setShowTaskForm(true)}>
+              + Create Task
+            </button>
+          )}
+
           <select 
             className="btn glass-panel" 
             style={{ color: 'var(--text-main)' }}

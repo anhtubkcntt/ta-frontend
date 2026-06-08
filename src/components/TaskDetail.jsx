@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { logActivity } from '../utils/logger';
 
-export default function TaskDetail({ task, onBack, session }) {
+export default function TaskDetail({ task, onBack, session, isAdmin }) {
   const [currentTask, setCurrentTask] = useState(task);
   const [metrics, setMetrics] = useState(null);
   const [reports, setReports] = useState([]);
@@ -179,9 +179,11 @@ export default function TaskDetail({ task, onBack, session }) {
           &larr; Back to Tasks
         </button>
         {!isEditing ? (
-          <button onClick={() => setIsEditing(true)} className="btn btn-primary">
-            Edit Task Info
-          </button>
+          isAdmin && (
+            <button onClick={() => setIsEditing(true)} className="btn btn-primary">
+              Edit Task Info
+            </button>
+          )
         ) : (
           <div style={{ display: 'flex', gap: '8px' }}>
             <button onClick={() => {
@@ -262,12 +264,13 @@ export default function TaskDetail({ task, onBack, session }) {
               <h4 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>PICs (Phụ trách chính)</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {profiles.map(p => (
-                  <label key={p.id} style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                  <label key={p.id} style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', cursor: isAdmin ? 'pointer' : 'default', margin: 0 }}>
                     <input 
                       type="checkbox" 
                       checked={(currentTask.pic_ids || []).includes(p.id)} 
-                      onChange={() => handlePicToggle(p.id)} 
-                      style={{ width: 'auto', margin: 0 }}
+                      onChange={() => isAdmin && handlePicToggle(p.id)} 
+                      disabled={!isAdmin}
+                      style={{ width: 'auto', margin: 0, opacity: isAdmin ? 1 : 0.6 }}
                     />
                     {p.email.split('@')[0]}
                   </label>
@@ -278,12 +281,13 @@ export default function TaskDetail({ task, onBack, session }) {
               <h4 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Supporters (Hỗ trợ)</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {profiles.map(p => (
-                  <label key={p.id} style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                  <label key={p.id} style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', cursor: isAdmin ? 'pointer' : 'default', margin: 0 }}>
                     <input 
                       type="checkbox" 
                       checked={(currentTask.supporter_ids || []).includes(p.id)} 
-                      onChange={() => handleSupporterToggle(p.id)} 
-                      style={{ width: 'auto', margin: 0 }}
+                      onChange={() => isAdmin && handleSupporterToggle(p.id)} 
+                      disabled={!isAdmin}
+                      style={{ width: 'auto', margin: 0, opacity: isAdmin ? 1 : 0.6 }}
                     />
                     {p.email.split('@')[0]}
                   </label>

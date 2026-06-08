@@ -4,7 +4,7 @@ import TaskForm from './TaskForm';
 import TaskDetail from './TaskDetail';
 import { logActivity } from '../utils/logger';
 
-export default function TaskList({ session }) {
+export default function TaskList({ session, isAdmin }) {
   const [tasks, setTasks] = useState([]);
   const [profiles, setProfiles] = useState({});
   const [loading, setLoading] = useState(true);
@@ -131,7 +131,14 @@ export default function TaskList({ session }) {
   });
 
   if (selectedTask) {
-    return <TaskDetail task={selectedTask} onBack={() => {setSelectedTask(null); fetchData();}} session={session} />;
+    return (
+      <TaskDetail 
+        task={selectedTask} 
+        onBack={() => {setSelectedTask(null); fetchData();}} 
+        session={session} 
+        isAdmin={isAdmin}
+      />
+    );
   }
 
   return (

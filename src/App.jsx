@@ -87,6 +87,9 @@ function Auth() {
 // Layout chính chứa Sidebar và thay đổi nội dung
 function MainLayout({ session, toggleTheme, theme }) {
   const [activeTab, setActiveTab] = useState('DASHBOARD');
+  
+  const userEmail = session?.user?.email || '';
+  const isAdmin = userEmail.toLowerCase().includes('tranghoang');
 
   return (
     <div className="app-container">
@@ -125,18 +128,6 @@ function MainLayout({ session, toggleTheme, theme }) {
             <span style={{ fontSize: '1.2rem' }}>📋</span> Kanban Board
           </li>
           <li 
-            className={activeTab === 'TASK_LIST' ? 'active' : ''} 
-            onClick={() => setActiveTab('TASK_LIST')}
-            style={{ 
-              padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', 
-              backgroundColor: activeTab === 'TASK_LIST' ? 'var(--primary-color)' : 'transparent',
-              color: activeTab === 'TASK_LIST' ? 'white' : 'var(--text-secondary)',
-              transition: 'all 0.2s'
-            }}
-          >
-            <span style={{ fontSize: '1.2rem' }}>📝</span> List View
-          </li>
-          <li 
             className={activeTab === 'ACTIVITY' ? 'active' : ''} 
             onClick={() => setActiveTab('ACTIVITY')}
             style={{ 
@@ -148,6 +139,22 @@ function MainLayout({ session, toggleTheme, theme }) {
           >
             <span style={{ fontSize: '1.2rem' }}>🕒</span> Activity Logs
           </li>
+          {isAdmin && (
+            <>
+              <li 
+                className={activeTab === 'TASK_LIST' ? 'active' : ''} 
+                onClick={() => setActiveTab('TASK_LIST')}
+                style={{ 
+                  padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', 
+                  backgroundColor: activeTab === 'TASK_LIST' ? 'var(--primary-color)' : 'transparent',
+                  color: activeTab === 'TASK_LIST' ? 'white' : 'var(--text-secondary)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span style={{ fontSize: '1.2rem' }}>📝</span> List View
+              </li>
+            </>
+          )}
         </ul>
         
         <div style={{ marginTop: 'auto', padding: '20px', borderTop: '1px solid var(--border-color)' }}>
@@ -199,9 +206,9 @@ function MainLayout({ session, toggleTheme, theme }) {
 
         {/* Dynamic View Content */}
         <div className="content-area" style={{ flex: 1, overflowY: 'auto', padding: '0 32px 32px 32px' }}>
-          {activeTab === 'DASHBOARD' && <Dashboard session={session} />}
-          {activeTab === 'TASK_BOARD' && <TaskBoard session={session} />}
-          {activeTab === 'TASK_LIST' && <TaskList session={session} />}
+          {activeTab === 'DASHBOARD' && <Dashboard session={session} isAdmin={isAdmin} />}
+          {activeTab === 'TASK_BOARD' && <TaskBoard session={session} isAdmin={isAdmin} />}
+          {activeTab === 'TASK_LIST' && isAdmin && <TaskList session={session} isAdmin={isAdmin} />}
           {activeTab === 'ACTIVITY' && <ActivityFeed />}
         </div>
         
