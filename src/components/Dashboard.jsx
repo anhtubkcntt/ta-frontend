@@ -20,6 +20,7 @@ export default function Dashboard({ session }) {
   const [taskMetrics, setTaskMetrics] = useState({
     categories: { RECRUITMENT: 0, EB: 0, OTHER: 0 },
     statuses: { NOT_STARTED: 0, PENDING: 0, IN_PROGRESS: 0, DONE: 0 },
+    assignees: {},
     total: 0
   });
 
@@ -78,9 +79,18 @@ export default function Dashboard({ session }) {
       const { data: tasksData, error: tasksError } = await taskQuery;
       if (tasksError) throw tasksError;
 
+      const { data: profilesData } = await supabase.from('profiles').select('*');
+      let profileMap = {};
+      if (profilesData) {
+        profilesData.forEach(p => {
+          profileMap[p.id] = p;
+        });
+      }
+
       const tStats = {
         categories: { RECRUITMENT: 0, EB: 0, OTHER: 0 },
         statuses: { NOT_STARTED: 0, PENDING: 0, IN_PROGRESS: 0, DONE: 0 },
+        assignees: {},
         total: tasksData ? tasksData.length : 0
       };
 
@@ -88,6 +98,20 @@ export default function Dashboard({ session }) {
         tasksData.forEach(t => {
           if (tStats.categories[t.category] !== undefined) tStats.categories[t.category]++;
           if (tStats.statuses[t.status] !== undefined) tStats.statuses[t.status]++;
+          
+          if (t.pic_ids && t.pic_ids.length > 0) {
+            t.pic_ids.forEach(picId => {
+              const profile = profileMap[picId];
+              if (profile) {
+                const username = profile.email.split('@')[0];
+                if (!username.toLowerCase().includes('tranghoang')) {
+                  tStats.assignees[username] = (tStats.assignees[username] || 0) + 1;
+                }
+              }
+            });
+          } else {
+            tStats.assignees['Unassigned'] = (tStats.assignees['Unassigned'] || 0) + 1;
+          }
         });
       }
       setTaskMetrics(tStats);
@@ -212,6 +236,23 @@ export default function Dashboard({ session }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>Done</span><span className="badge" style={{ backgroundColor: 'var(--success)', color: 'white', padding: '4px 12px' }}>{taskMetrics.statuses.DONE}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Assignee Stats */}
+            <div className="glass-panel" style={{ padding: '24px', backgroundColor: 'var(--surface-color)' }}>
+              <h3 style={{ marginBottom: '16px', color: 'var(--text-main)', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
+                Tasks by PIC
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '200px', overflowY: 'auto' }}>
+                {Object.entries(taskMetrics.assignees)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([username, count]) => (
+                  <div key={username} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{username}</span>
+                    <span className="badge" style={{ backgroundColor: 'var(--primary-color)', color: 'white', padding: '4px 12px' }}>{count}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
