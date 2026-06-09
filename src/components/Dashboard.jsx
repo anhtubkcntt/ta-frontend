@@ -104,9 +104,7 @@ export default function Dashboard({ session }) {
               const profile = profileMap[picId];
               if (profile) {
                 const username = profile.email.split('@')[0];
-                if (!username.toLowerCase().includes('tranghoang')) {
-                  tStats.assignees[username] = (tStats.assignees[username] || 0) + 1;
-                }
+                tStats.assignees[username] = (tStats.assignees[username] || 0) + 1;
               }
             });
           } else {
