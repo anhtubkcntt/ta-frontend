@@ -257,7 +257,11 @@ export default function Dashboard({ session }) {
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '200px', overflowY: 'auto' }}>
                 {Object.entries(taskMetrics.assignees)
-                  .sort(([, a], [, b]) => b - a)
+                  .sort(([nameA, countA], [nameB, countB]) => {
+                    if (nameA.toLowerCase().includes('tranghoang')) return -1;
+                    if (nameB.toLowerCase().includes('tranghoang')) return 1;
+                    return countB - countA;
+                  })
                   .map(([username, count]) => (
                   <div key={username} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>{username}</span>
@@ -274,7 +278,11 @@ export default function Dashboard({ session }) {
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '200px', overflowY: 'auto' }}>
                 {Object.entries(taskMetrics.supporters)
-                  .sort(([, a], [, b]) => b - a)
+                  .sort(([nameA, countA], [nameB, countB]) => {
+                    if (nameA.toLowerCase().includes('tranghoang')) return -1;
+                    if (nameB.toLowerCase().includes('tranghoang')) return 1;
+                    return countB - countA;
+                  })
                   .map(([username, count]) => (
                   <div key={username} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>{username}</span>
