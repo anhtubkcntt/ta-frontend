@@ -12,6 +12,7 @@ export default function TaskList({ session, isAdmin }) {
   // Filters
   const [filter, setFilter] = useState('ALL'); // Category
   const [assigneeFilter, setAssigneeFilter] = useState('ALL');
+  const [supporterFilter, setSupporterFilter] = useState('ALL');
   const [timeFilter, setTimeFilter] = useState('ALL');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
@@ -126,8 +127,12 @@ export default function TaskList({ session, isAdmin }) {
                          (assigneeFilter === 'UNASSIGNED' ? (!task.pic_ids || task.pic_ids.length === 0) : 
                          (task.pic_ids && task.pic_ids.includes(assigneeFilter)));
                          
+    const passSupporter = supporterFilter === 'ALL' || 
+                          (supporterFilter === 'UNASSIGNED' ? (!task.supporter_ids || task.supporter_ids.length === 0) : 
+                          (task.supporter_ids && task.supporter_ids.includes(supporterFilter)));
+                         
     const passTime = filterByDate(task.created_at, timeFilter);
-    return passCategory && passAssignee && passTime;
+    return passCategory && passAssignee && passSupporter && passTime;
   });
 
   if (selectedTask) {
@@ -165,7 +170,20 @@ export default function TaskList({ session, isAdmin }) {
             onChange={(e) => setAssigneeFilter(e.target.value)}
           >
             <option value="ALL">All PICs</option>
-            <option value="UNASSIGNED">Unassigned</option>
+            <option value="UNASSIGNED">Unassigned PIC</option>
+            {Object.values(profiles).map(p => (
+              <option key={p.id} value={p.id}>{p.email.split('@')[0]}</option>
+            ))}
+          </select>
+          
+          <select 
+            className="btn glass-panel" 
+            style={{ color: 'var(--text-main)' }}
+            value={supporterFilter}
+            onChange={(e) => setSupporterFilter(e.target.value)}
+          >
+            <option value="ALL">All Supporters</option>
+            <option value="UNASSIGNED">No Supporters</option>
             {Object.values(profiles).map(p => (
               <option key={p.id} value={p.id}>{p.email.split('@')[0]}</option>
             ))}
@@ -221,6 +239,7 @@ export default function TaskList({ session, isAdmin }) {
                 <th style={{ padding: '12px' }}>Name</th>
                 <th style={{ padding: '12px' }}>Category</th>
                 <th style={{ padding: '12px' }}>PICs</th>
+                <th style={{ padding: '12px' }}>Supporters</th>
                 <th style={{ padding: '12px' }}>Created At</th>
                 <th style={{ padding: '12px' }}>Status</th>
                 <th style={{ padding: '12px' }}>Actions</th>
@@ -239,6 +258,11 @@ export default function TaskList({ session, isAdmin }) {
                     {task.pic_ids && task.pic_ids.length > 0 
                       ? task.pic_ids.map(id => profiles[id]?.email.split('@')[0]).filter(Boolean).join(', ') 
                       : 'Unassigned'}
+                  </td>
+                  <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>
+                    {task.supporter_ids && task.supporter_ids.length > 0 
+                      ? task.supporter_ids.map(id => profiles[id]?.email.split('@')[0]).filter(Boolean).join(', ') 
+                      : 'None'}
                   </td>
                   <td style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                     {new Date(task.created_at).toLocaleDateString()}

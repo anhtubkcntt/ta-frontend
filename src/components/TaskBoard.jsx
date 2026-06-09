@@ -12,6 +12,7 @@ export default function TaskBoard({ session, isAdmin }) {
   // Filters
   const [filter, setFilter] = useState('ALL'); // Category
   const [assigneeFilter, setAssigneeFilter] = useState('ALL');
+  const [supporterFilter, setSupporterFilter] = useState('ALL');
   const [timeFilter, setTimeFilter] = useState('ALL');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
@@ -120,8 +121,11 @@ export default function TaskBoard({ session, isAdmin }) {
     const passAssignee = assigneeFilter === 'ALL' || 
                          (assigneeFilter === 'UNASSIGNED' ? (!task.pic_ids || task.pic_ids.length === 0) : 
                          (task.pic_ids && task.pic_ids.includes(assigneeFilter)));
+    const passSupporter = supporterFilter === 'ALL' || 
+                          (supporterFilter === 'UNASSIGNED' ? (!task.supporter_ids || task.supporter_ids.length === 0) : 
+                          (task.supporter_ids && task.supporter_ids.includes(supporterFilter)));
     const passTime = filterByDate(task.created_at, timeFilter);
-    return passCategory && passAssignee && passTime;
+    return passCategory && passAssignee && passSupporter && passTime;
   });
 
   if (selectedTask) {
@@ -178,7 +182,20 @@ export default function TaskBoard({ session, isAdmin }) {
             onChange={(e) => setAssigneeFilter(e.target.value)}
           >
             <option value="ALL">All PICs</option>
-            <option value="UNASSIGNED">Unassigned</option>
+            <option value="UNASSIGNED">Unassigned PIC</option>
+            {Object.values(profiles).map(p => (
+              <option key={p.id} value={p.id}>{p.email.split('@')[0]}</option>
+            ))}
+          </select>
+          
+          <select 
+            className="btn glass-panel" 
+            style={{ color: 'var(--text-main)' }}
+            value={supporterFilter}
+            onChange={(e) => setSupporterFilter(e.target.value)}
+          >
+            <option value="ALL">All Supporters</option>
+            <option value="UNASSIGNED">No Supporters</option>
             {Object.values(profiles).map(p => (
               <option key={p.id} value={p.id}>{p.email.split('@')[0]}</option>
             ))}
@@ -264,17 +281,20 @@ export default function TaskBoard({ session, isAdmin }) {
                     
                     <h4 style={{ fontSize: '1rem', marginBottom: '8px', lineHeight: '1.4' }}>{task.name}</h4>
                     
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border-color)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {task.pic_ids && task.pic_ids.length > 0 ? (
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                            {task.pic_ids.map(id => profiles[id]?.email.split('@')[0]).filter(Boolean).join(', ')}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border-color)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, paddingRight: '8px' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', wordBreak: 'break-word' }}>
+                          <strong style={{color: 'var(--text-main)'}}>PICs:</strong> {task.pic_ids && task.pic_ids.length > 0 
+                            ? task.pic_ids.map(id => profiles[id]?.email.split('@')[0]).filter(Boolean).join(', ') 
+                            : 'Unassigned'}
+                        </span>
+                        {task.supporter_ids && task.supporter_ids.length > 0 && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', wordBreak: 'break-word' }}>
+                            <strong style={{color: 'var(--text-main)'}}>Supp:</strong> {task.supporter_ids.map(id => profiles[id]?.email.split('@')[0]).filter(Boolean).join(', ')}
                           </span>
-                        ) : (
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Unassigned</span>
                         )}
                       </div>
-                      <span style={{ fontSize: '0.75rem', color: task.deadline ? 'var(--danger)' : 'var(--text-secondary)' }}>
+                      <span style={{ fontSize: '0.75rem', color: task.deadline ? 'var(--danger)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                         {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No date'}
                       </span>
                     </div>
