@@ -149,7 +149,7 @@ export default function TaskList({ session, isAdmin }) {
   return (
     <div className="glass-panel" style={{ padding: '24px', minHeight: '600px', position: 'relative' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <h2>Task List (Admin View)</h2>
+        <h2>Task List</h2>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <select 
             className="btn glass-panel" 
@@ -281,7 +281,7 @@ export default function TaskList({ session, isAdmin }) {
                   </td>
                   <td style={{ padding: '12px' }}>
                     <button className="btn btn-primary" style={{ padding: '4px 8px', fontSize: '0.8rem', marginRight: '8px' }} onClick={() => setSelectedTask(task)}>View</button>
-                    <button className="btn" style={{ padding: '4px 8px', fontSize: '0.8rem', background: 'var(--danger)', color: 'white', border: 'none' }} onClick={() => handleDelete(task)}>Delete</button>
+                    {isAdmin && <button className="btn" style={{ padding: '4px 8px', fontSize: '0.8rem', background: 'var(--danger)', color: 'white', border: 'none' }} onClick={() => handleDelete(task)}>Delete</button>}
                   </td>
                 </tr>
               ))}

@@ -27,7 +27,9 @@ function App() {
   }, []);
 
   const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    const themes = ['dark', 'light', 'pink'];
+    const nextIndex = (themes.indexOf(theme) + 1) % themes.length;
+    const newTheme = themes[nextIndex];
     setTheme(newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
   };
@@ -87,9 +89,65 @@ function Auth() {
 // Layout chính chứa Sidebar và thay đổi nội dung
 function MainLayout({ session, toggleTheme, theme }) {
   const [activeTab, setActiveTab] = useState('DASHBOARD');
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   
   const userEmail = session?.user?.email || '';
   const isAdmin = userEmail.toLowerCase().includes('tranghoang');
+
+  const fetchNotifications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+        
+      if (!error && data) {
+        setNotifications(data);
+        setUnreadCount(data.filter(n => !n.is_read).length);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'notifications',
+        filter: `user_id=eq.${session.user.id}`
+      }, payload => {
+        setNotifications(prev => [payload.new, ...prev]);
+        setUnreadCount(prev => prev + 1);
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session]);
+
+  const markAsRead = async (id) => {
+    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+  };
+  
+  const markAllAsRead = async () => {
+    const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
+    if (unreadIds.length === 0) return;
+    
+    await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    setUnreadCount(0);
+  };
 
   return (
     <div className="app-container">
@@ -139,22 +197,18 @@ function MainLayout({ session, toggleTheme, theme }) {
           >
             <span style={{ fontSize: '1.2rem' }}>🕒</span> Activity Logs
           </li>
-          {isAdmin && (
-            <>
-              <li 
-                className={activeTab === 'TASK_LIST' ? 'active' : ''} 
-                onClick={() => setActiveTab('TASK_LIST')}
-                style={{ 
-                  padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', 
-                  backgroundColor: activeTab === 'TASK_LIST' ? 'var(--primary-color)' : 'transparent',
-                  color: activeTab === 'TASK_LIST' ? 'white' : 'var(--text-secondary)',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <span style={{ fontSize: '1.2rem' }}>📝</span> List View
-              </li>
-            </>
-          )}
+          <li 
+            className={activeTab === 'TASK_LIST' ? 'active' : ''} 
+            onClick={() => setActiveTab('TASK_LIST')}
+            style={{ 
+              padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', 
+              backgroundColor: activeTab === 'TASK_LIST' ? 'var(--primary-color)' : 'transparent',
+              color: activeTab === 'TASK_LIST' ? 'white' : 'var(--text-secondary)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <span style={{ fontSize: '1.2rem' }}>📝</span> List View
+          </li>
         </ul>
         
         <div style={{ marginTop: 'auto', padding: '20px', borderTop: '1px solid var(--border-color)' }}>
@@ -187,17 +241,54 @@ function MainLayout({ session, toggleTheme, theme }) {
             <button 
               className="btn glass-panel" 
               onClick={toggleTheme}
-              style={{ padding: '8px 12px', fontSize: '1.2rem', color: 'var(--text-main)' }}
+              style={{ padding: '10px 14px', fontSize: '1.4rem', color: 'var(--text-main)' }}
               title="Toggle Theme"
             >
-              {theme === 'dark' ? '☀️' : '🌙'}
+              {theme === 'dark' ? '☀️' : theme === 'light' ? '🌸' : '🌙'}
             </button>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                🔔
+              {/* Notifications Dropdown */}
+              <div style={{ position: 'relative' }}>
+                <div 
+                  style={{ width: '44px', height: '44px', fontSize: '1.2rem', borderRadius: '50%', backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', position: 'relative' }}
+                  onClick={() => setShowNotifications(!showNotifications)}
+                >
+                  🔔
+                  {unreadCount > 0 && (
+                    <span style={{ position: 'absolute', top: '-4px', right: '-4px', backgroundColor: 'var(--danger)', color: 'white', fontSize: '0.65rem', padding: '2px 6px', borderRadius: '10px', fontWeight: 'bold' }}>
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
+
+                {showNotifications && (
+                  <div className="glass-panel" style={{ position: 'absolute', top: '48px', right: '0', width: '320px', maxHeight: '400px', overflowY: 'auto', zIndex: 100, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4 style={{ margin: 0 }}>Notifications</h4>
+                      {unreadCount > 0 && (
+                        <button onClick={markAllAsRead} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', fontSize: '0.8rem', cursor: 'pointer' }}>Mark all read</button>
+                      )}
+                    </div>
+                    {notifications.length === 0 ? (
+                      <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No notifications</div>
+                    ) : (
+                      notifications.map(n => (
+                        <div 
+                          key={n.id} 
+                          onClick={() => !n.is_read && markAsRead(n.id)}
+                          style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', backgroundColor: n.is_read ? 'transparent' : 'rgba(94, 106, 210, 0.05)', cursor: n.is_read ? 'default' : 'pointer', transition: 'background-color 0.2s' }}
+                        >
+                          <p style={{ margin: 0, fontSize: '0.85rem', color: n.is_read ? 'var(--text-secondary)' : 'var(--text-main)' }}>{n.content}</p>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{new Date(n.created_at).toLocaleString()}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
-              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-color), #8b5cf6)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold' }}>
+              
+              <div style={{ width: '44px', height: '44px', fontSize: '1.2rem', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-color), #8b5cf6)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold' }}>
                 {session.user.email.charAt(0).toUpperCase()}
               </div>
             </div>
@@ -208,7 +299,7 @@ function MainLayout({ session, toggleTheme, theme }) {
         <div className="content-area" style={{ flex: 1, overflowY: 'auto', padding: '0 32px 32px 32px' }}>
           {activeTab === 'DASHBOARD' && <Dashboard session={session} isAdmin={isAdmin} />}
           {activeTab === 'TASK_BOARD' && <TaskBoard session={session} isAdmin={isAdmin} />}
-          {activeTab === 'TASK_LIST' && isAdmin && <TaskList session={session} isAdmin={isAdmin} />}
+          {activeTab === 'TASK_LIST' && <TaskList session={session} isAdmin={isAdmin} />}
           {activeTab === 'ACTIVITY' && <ActivityFeed />}
         </div>
         

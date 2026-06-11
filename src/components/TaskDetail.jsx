@@ -27,6 +27,9 @@ export default function TaskDetail({ task, onBack, session, isAdmin }) {
   const [onboardings, setOnboardings] = useState(0);
   const [passProbations, setPassProbations] = useState(0);
   
+  const [resourceType, setResourceType] = useState('');
+  const [resourceDetail, setResourceDetail] = useState('');
+  
   const [reportNotes, setReportNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -92,29 +95,41 @@ export default function TaskDetail({ task, onBack, session, isAdmin }) {
 
   const handlePicToggle = async (id) => {
     const currentPics = currentTask.pic_ids || [];
-    const newPicIds = currentPics.includes(id) 
-      ? currentPics.filter(p => p !== id) 
-      : [...currentPics, id];
+    const isAdding = !currentPics.includes(id);
+    const newPicIds = isAdding ? [...currentPics, id] : currentPics.filter(p => p !== id);
     
     try {
       const { error } = await supabase.from('tasks').update({ pic_ids: newPicIds }).eq('id', currentTask.id);
       if (error) throw error;
       await logActivity(session.user.id, 'UPDATE', 'TASK', `Updated PICs for "${currentTask.name}"`);
       setCurrentTask({ ...currentTask, pic_ids: newPicIds });
+      
+      if (isAdding && id !== session.user.id) {
+        await supabase.from('notifications').insert([{
+          user_id: id,
+          content: `Bạn vừa được gán làm PIC cho task: "${currentTask.name}"`
+        }]);
+      }
     } catch (err) { alert(err.message); }
   };
 
   const handleSupporterToggle = async (id) => {
     const currentSupps = currentTask.supporter_ids || [];
-    const newSuppIds = currentSupps.includes(id) 
-      ? currentSupps.filter(p => p !== id) 
-      : [...currentSupps, id];
+    const isAdding = !currentSupps.includes(id);
+    const newSuppIds = isAdding ? [...currentSupps, id] : currentSupps.filter(p => p !== id);
     
     try {
       const { error } = await supabase.from('tasks').update({ supporter_ids: newSuppIds }).eq('id', currentTask.id);
       if (error) throw error;
       await logActivity(session.user.id, 'UPDATE', 'TASK', `Updated Supporters for "${currentTask.name}"`);
       setCurrentTask({ ...currentTask, supporter_ids: newSuppIds });
+      
+      if (isAdding && id !== session.user.id) {
+        await supabase.from('notifications').insert([{
+          user_id: id,
+          content: `Bạn vừa được gán làm Supporter cho task: "${currentTask.name}"`
+        }]);
+      }
     } catch (err) { alert(err.message); }
   };
 
@@ -132,6 +147,8 @@ export default function TaskDetail({ task, onBack, session, isAdmin }) {
         offers: offers,
         onboardings: onboardings,
         pass_probations: passProbations,
+        resource_type: resourceType || null,
+        resource_detail: resourceDetail || null,
         notes: reportNotes
       };
 
@@ -142,6 +159,15 @@ export default function TaskDetail({ task, onBack, session, isAdmin }) {
       if (error) throw error;
       
       await logActivity(session.user.id, 'CREATE', 'REPORT', `Submitted daily report for "${currentTask.name}"`);
+
+      // Gửi thông báo cho tranghoang
+      const tranghoangProfile = profiles.find(p => p.email.toLowerCase().includes('tranghoang'));
+      if (tranghoangProfile && tranghoangProfile.id !== session.user.id) {
+        await supabase.from('notifications').insert([{
+          user_id: tranghoangProfile.id,
+          content: `${session.user.email.split('@')[0]} vừa nộp report cho task "${currentTask.name}"`
+        }]);
+      }
 
       // Update total metrics if recruitment task
       if (currentTask.category === 'RECRUITMENT' && metrics) {
@@ -159,6 +185,8 @@ export default function TaskDetail({ task, onBack, session, isAdmin }) {
       setCvReceived(0);
       setCvPassScreening(0); setCvInterviewNsc(0); setCvInterviewClient(0);
       setOffers(0); setOnboardings(0); setPassProbations(0);
+      setResourceType('');
+      setResourceDetail('');
       setReportNotes('');
       fetchTaskDetails();
       
@@ -320,34 +348,92 @@ export default function TaskDetail({ task, onBack, session, isAdmin }) {
           <h3>Submit Daily Report</h3>
           <form onSubmit={submitDailyReport} style={{ marginTop: '16px' }}>
             {currentTask.category === 'RECRUITMENT' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                <div className="input-group" style={{ marginBottom: '0' }}>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--primary-color)' }}>Total CVs</label>
-                  <input type="number" min="0" value={cvReceived} onChange={e => setCvReceived(e.target.value)} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '16px' }}>
+                {/* Left Column: Metrics */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div className="input-group" style={{ marginBottom: '0' }}>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--primary-color)' }}>Total CVs</label>
+                    <input type="number" min="0" value={cvReceived} onChange={e => setCvReceived(e.target.value)} />
+                  </div>
+                  <div className="input-group" style={{ marginBottom: '0' }}>
+                    <label style={{ fontSize: '0.8rem' }}>CV Pass Screen</label>
+                    <input type="number" min="0" value={cvPassScreening} onChange={e => setCvPassScreening(e.target.value)} />
+                  </div>
+                  <div className="input-group" style={{ marginBottom: '0' }}>
+                    <label style={{ fontSize: '0.8rem' }}>Int. NSC</label>
+                    <input type="number" min="0" value={cvInterviewNsc} onChange={e => setCvInterviewNsc(e.target.value)} />
+                  </div>
+                  <div className="input-group" style={{ marginBottom: '0' }}>
+                    <label style={{ fontSize: '0.8rem' }}>Int. Client</label>
+                    <input type="number" min="0" value={cvInterviewClient} onChange={e => setCvInterviewClient(e.target.value)} />
+                  </div>
+                  <div className="input-group" style={{ marginBottom: '0' }}>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--success)' }}>Offers</label>
+                    <input type="number" min="0" value={offers} onChange={e => setOffers(e.target.value)} />
+                  </div>
+                  <div className="input-group" style={{ marginBottom: '0' }}>
+                    <label style={{ fontSize: '0.8rem' }}>Onboarding</label>
+                    <input type="number" min="0" value={onboardings} onChange={e => setOnboardings(e.target.value)} />
+                  </div>
+                  <div className="input-group" style={{ marginBottom: '0' }}>
+                    <label style={{ fontSize: '0.8rem' }}>Pass Probation</label>
+                    <input type="number" min="0" value={passProbations} onChange={e => setPassProbations(e.target.value)} />
+                  </div>
                 </div>
-                <div className="input-group" style={{ marginBottom: '0' }}>
-                  <label style={{ fontSize: '0.8rem' }}>CV Pass Screen</label>
-                  <input type="number" min="0" value={cvPassScreening} onChange={e => setCvPassScreening(e.target.value)} />
-                </div>
-                <div className="input-group" style={{ marginBottom: '0' }}>
-                  <label style={{ fontSize: '0.8rem' }}>Int. NSC</label>
-                  <input type="number" min="0" value={cvInterviewNsc} onChange={e => setCvInterviewNsc(e.target.value)} />
-                </div>
-                <div className="input-group" style={{ marginBottom: '0' }}>
-                  <label style={{ fontSize: '0.8rem' }}>Int. Client</label>
-                  <input type="number" min="0" value={cvInterviewClient} onChange={e => setCvInterviewClient(e.target.value)} />
-                </div>
-                <div className="input-group" style={{ marginBottom: '0' }}>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--success)' }}>Offers</label>
-                  <input type="number" min="0" value={offers} onChange={e => setOffers(e.target.value)} />
-                </div>
-                <div className="input-group" style={{ marginBottom: '0' }}>
-                  <label style={{ fontSize: '0.8rem' }}>Onboarding</label>
-                  <input type="number" min="0" value={onboardings} onChange={e => setOnboardings(e.target.value)} />
-                </div>
-                <div className="input-group" style={{ marginBottom: '0' }}>
-                  <label style={{ fontSize: '0.8rem' }}>Pass Probation</label>
-                  <input type="number" min="0" value={passProbations} onChange={e => setPassProbations(e.target.value)} />
+
+                {/* Right Column: Resources */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '4px' }}>Resource (Nguồn CV)</label>
+                  
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: 0, cursor: 'pointer', fontSize: '0.85rem' }}>
+                    <input type="radio" name="resourceType" value="TU_HUNT" checked={resourceType === 'TU_HUNT'} onChange={e => { setResourceType(e.target.value); setResourceDetail(''); }} style={{ marginTop: '4px', width: 'auto' }} />
+                    <div style={{ flex: 1 }}>
+                      <span style={{ color: resourceType === 'TU_HUNT' ? 'var(--primary-color)' : 'var(--text-secondary)' }}>Tự hunt (Linkedin, FB, Network...)</span>
+                      {resourceType === 'TU_HUNT' && (
+                        <input type="text" placeholder="Nhập tên kênh tự hunt..." value={resourceDetail} onChange={e => setResourceDetail(e.target.value)} style={{ marginTop: '8px', fontSize: '0.8rem', padding: '6px 10px', width: '100%' }} />
+                      )}
+                    </div>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: 0, cursor: 'pointer', fontSize: '0.85rem' }}>
+                    <input type="radio" name="resourceType" value="INTERNAL_REFERRAL" checked={resourceType === 'INTERNAL_REFERRAL'} onChange={e => { setResourceType(e.target.value); setResourceDetail(''); }} style={{ marginTop: '4px', width: 'auto' }} />
+                    <div style={{ flex: 1 }}>
+                      <span style={{ color: resourceType === 'INTERNAL_REFERRAL' ? 'var(--primary-color)' : 'var(--text-secondary)' }}>Internal Referral (Giới thiệu nội bộ)</span>
+                      {resourceType === 'INTERNAL_REFERRAL' && (
+                        <input type="text" placeholder="Tên người giới thiệu..." value={resourceDetail} onChange={e => setResourceDetail(e.target.value)} style={{ marginTop: '8px', fontSize: '0.8rem', padding: '6px 10px', width: '100%' }} />
+                      )}
+                    </div>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: 0, cursor: 'pointer', fontSize: '0.85rem' }}>
+                    <input type="radio" name="resourceType" value="TRA_PHI" checked={resourceType === 'TRA_PHI'} onChange={e => { setResourceType(e.target.value); setResourceDetail(''); }} style={{ marginTop: '4px', width: 'auto' }} />
+                    <div style={{ flex: 1 }}>
+                      <span style={{ color: resourceType === 'TRA_PHI' ? 'var(--primary-color)' : 'var(--text-secondary)' }}>Công ty trả phí (ITViec, TopCV, Headhunt...)</span>
+                      {resourceType === 'TRA_PHI' && (
+                        <input type="text" placeholder="Tên kênh trả phí..." value={resourceDetail} onChange={e => setResourceDetail(e.target.value)} style={{ marginTop: '8px', fontSize: '0.8rem', padding: '6px 10px', width: '100%' }} />
+                      )}
+                    </div>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: 0, cursor: 'pointer', fontSize: '0.85rem' }}>
+                    <input type="radio" name="resourceType" value="POOL_SAN" checked={resourceType === 'POOL_SAN'} onChange={e => { setResourceType(e.target.value); setResourceDetail(''); }} style={{ marginTop: '4px', width: 'auto' }} />
+                    <div style={{ flex: 1 }}>
+                      <span style={{ color: resourceType === 'POOL_SAN' ? 'var(--primary-color)' : 'var(--text-secondary)' }}>Pool công ty có sẵn</span>
+                      {resourceType === 'POOL_SAN' && (
+                        <input type="text" placeholder="Ghi chú thêm..." value={resourceDetail} onChange={e => setResourceDetail(e.target.value)} style={{ marginTop: '8px', fontSize: '0.8rem', padding: '6px 10px', width: '100%' }} />
+                      )}
+                    </div>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: 0, cursor: 'pointer', fontSize: '0.85rem' }}>
+                    <input type="radio" name="resourceType" value="KHAC" checked={resourceType === 'KHAC'} onChange={e => { setResourceType(e.target.value); setResourceDetail(''); }} style={{ marginTop: '4px', width: 'auto' }} />
+                    <div style={{ flex: 1 }}>
+                      <span style={{ color: resourceType === 'KHAC' ? 'var(--primary-color)' : 'var(--text-secondary)' }}>Nguồn khác</span>
+                      {resourceType === 'KHAC' && (
+                        <input type="text" placeholder="Nhập tên nguồn khác..." value={resourceDetail} onChange={e => setResourceDetail(e.target.value)} style={{ marginTop: '8px', fontSize: '0.8rem', padding: '6px 10px', width: '100%' }} />
+                      )}
+                    </div>
+                  </label>
                 </div>
               </div>
             )}
@@ -408,15 +494,27 @@ export default function TaskDetail({ task, onBack, session, isAdmin }) {
                     </div>
                     <p style={{ fontSize: '0.95rem', margin: 0 }}>{report.notes}</p>
                     {currentTask.category === 'RECRUITMENT' && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                        <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>CVs: {report.cv_received || 0}</span>
-                        <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>Pass Screen: {report.cv_pass_screening || 0}</span>
-                        <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>Int NSC: {report.cv_interview_nsc || 0}</span>
-                        <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>Int Client: {report.cv_interview_client || 0}</span>
-                        <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px', color: 'var(--success)' }}>Offers: {report.offers || 0}</span>
-                        <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>Onboard: {report.onboardings || 0}</span>
-                        <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>Pass Prob: {report.pass_probations || 0}</span>
-                      </div>
+                      <>
+                        {report.resource_type && (
+                          <div style={{ marginTop: '8px', fontSize: '0.8rem', color: 'var(--primary-color)' }}>
+                            <span style={{ fontWeight: 'bold' }}>Nguồn CV: </span>
+                            {report.resource_type === 'TU_HUNT' ? 'Tự hunt' : 
+                             report.resource_type === 'INTERNAL_REFERRAL' ? 'Internal Referral' : 
+                             report.resource_type === 'TRA_PHI' ? 'Công ty trả phí' : 
+                             report.resource_type === 'POOL_SAN' ? 'Pool công ty có sẵn' : 'Nguồn khác'}
+                            {report.resource_detail && ` (${report.resource_detail})`}
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>CVs: {report.cv_received || 0}</span>
+                          <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>Pass Screen: {report.cv_pass_screening || 0}</span>
+                          <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>Int NSC: {report.cv_interview_nsc || 0}</span>
+                          <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>Int Client: {report.cv_interview_client || 0}</span>
+                          <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px', color: 'var(--success)' }}>Offers: {report.offers || 0}</span>
+                          <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>Onboard: {report.onboardings || 0}</span>
+                          <span style={{ backgroundColor: 'var(--surface-color)', padding: '2px 6px', borderRadius: '4px' }}>Pass Prob: {report.pass_probations || 0}</span>
+                        </div>
+                      </>
                     )}
                   </div>
                   );

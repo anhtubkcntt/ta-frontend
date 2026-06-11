@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-:root {
+:root, [data-theme="dark"] {
   /* Sleek Dark Palette (Linear-inspired) */
   --bg-color: #0e1015; /* Deep Charcoal Gray */
   --surface-color: #16181d; /* Slightly lighter for cards */
@@ -26,6 +26,52 @@
   --border-focus: #3d4251;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] {
+  --bg-color: #f8fafc; 
+  --surface-color: #ffffff; 
+  --surface-hover: #f1f5f9;
+  
+  --primary-color: #4f46e5;
+  --primary-hover: #4338ca;
+  --accent-color: #0d9488;
+  
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #e11d48;
+  
+  --text-main: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+  
+  --border-color: #e2e8f0;
+  --border-focus: #cbd5e1;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="pink"] {
+  --bg-color: #fdf2f8; 
+  --surface-color: #ffffff; 
+  --surface-hover: #fce7f3;
+  
+  --primary-color: #db2777;
+  --primary-hover: #be185d;
+  --accent-color: #f43f5e;
+  
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #e11d48;
+  
+  --text-main: #4a044e;
+  --text-secondary: #831843;
+  --text-tertiary: #9d174d;
+  
+  --border-color: #fbcfe8;
+  --border-focus: #f9a8d4;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 * {

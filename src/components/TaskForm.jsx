@@ -73,6 +73,18 @@ export default function TaskForm({ onClose, onTaskAdded }) {
           'TASK', 
           `Created a new task: "${newTask.name}"`
         );
+        
+        // Bắn thông báo cho những người được gán (trừ người tạo)
+        const notifyUsers = new Set([...finalPicIds, ...supporterIds]);
+        notifyUsers.delete(userData.user.id);
+        
+        if (notifyUsers.size > 0) {
+          const notifications = Array.from(notifyUsers).map(userId => ({
+            user_id: userId,
+            content: `Bạn vừa được gán vào task: "${newTask.name}"`
+          }));
+          await supabase.from('notifications').insert(notifications);
+        }
       }
       
       // If it's a recruitment task, create the metrics record
