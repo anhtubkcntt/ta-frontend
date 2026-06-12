@@ -254,7 +254,7 @@ export default function TaskBoard({ session, isAdmin }) {
                 e.preventDefault();
                 e.currentTarget.style.backgroundColor = 'var(--bg-color)';
                 const taskId = e.dataTransfer.getData('taskId');
-                const task = tasks.find(t => t.id === taskId);
+                const task = tasks.find(t => String(t.id) === taskId);
                 if (task && task.status !== col.id) {
                   updateTaskStatus(task, col.id);
                 }
