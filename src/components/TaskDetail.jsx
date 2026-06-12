@@ -31,6 +31,10 @@ export default function TaskDetail({ task, onBack, session, isAdmin }) {
   const [resourceDetail, setResourceDetail] = useState('');
   
   const [reportNotes, setReportNotes] = useState('');
+  
+  const [editingReportId, setEditingReportId] = useState(null);
+  const [editingReportOldMetrics, setEditingReportOldMetrics] = useState(null);
+  
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -133,11 +137,33 @@ export default function TaskDetail({ task, onBack, session, isAdmin }) {
     } catch (err) { alert(err.message); }
   };
 
+  const handleEditReport = (report) => {
+    setEditingReportId(report.id);
+    setEditingReportOldMetrics({
+      cv_received: report.cv_received || 0,
+      cv_pass_screening: report.cv_pass_screening || 0,
+      offers: report.offers || 0
+    });
+    setCvReceived(report.cv_received || 0);
+    setCvPassScreening(report.cv_pass_screening || 0);
+    setCvInterviewNsc(report.cv_interview_nsc || 0);
+    setCvInterviewClient(report.cv_interview_client || 0);
+    setOffers(report.offers || 0);
+    setOnboardings(report.onboardings || 0);
+    setPassProbations(report.pass_probations || 0);
+    setResourceType(report.resource_type || '');
+    setResourceDetail(report.resource_detail || '');
+    setReportNotes(report.notes || '');
+    
+    // Scroll to form (optional UX improvement)
+    window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });
+  };
+
   const submitDailyReport = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const newReport = {
+      const reportData = {
         task_id: currentTask.id,
         user_id: session.user.id,
         cv_received: cvReceived,
@@ -152,36 +178,62 @@ export default function TaskDetail({ task, onBack, session, isAdmin }) {
         notes: reportNotes
       };
 
-      const { error } = await supabase
-        .from('daily_reports')
-        .insert([newReport]);
+      if (editingReportId) {
+        const { error } = await supabase
+          .from('daily_reports')
+          .update(reportData)
+          .eq('id', editingReportId);
+        if (error) throw error;
+        
+        await logActivity(session.user.id, 'UPDATE', 'REPORT', `Updated daily report for "${currentTask.name}"`);
 
-      if (error) throw error;
-      
-      await logActivity(session.user.id, 'CREATE', 'REPORT', `Submitted daily report for "${currentTask.name}"`);
+        if (currentTask.category === 'RECRUITMENT' && metrics) {
+          const diffCvReceived = parseInt(cvReceived || 0) - editingReportOldMetrics.cv_received;
+          const diffScreenedCv = parseInt(cvPassScreening || 0) - editingReportOldMetrics.cv_pass_screening;
+          const diffOffers = parseInt(offers || 0) - editingReportOldMetrics.offers;
 
-      // Gửi thông báo cho tranghoang
-      const tranghoangProfile = profiles.find(p => p.email.toLowerCase().includes('tranghoang'));
-      if (tranghoangProfile && tranghoangProfile.id !== session.user.id) {
-        await supabase.from('notifications').insert([{
-          user_id: tranghoangProfile.id,
-          content: `${session.user.email.split('@')[0]} vừa nộp report cho task "${currentTask.name}"`
-        }]);
-      }
+          await supabase
+            .from('task_recruitment_metrics')
+            .update({
+               total_cv_received: (metrics.total_cv_received || 0) + diffCvReceived,
+               screened_cv: (metrics.screened_cv || 0) + diffScreenedCv,
+               offers: (metrics.offers || 0) + diffOffers
+            })
+            .eq('task_id', currentTask.id);
+        }
+      } else {
+        const { error } = await supabase
+          .from('daily_reports')
+          .insert([reportData]);
+        if (error) throw error;
+        
+        await logActivity(session.user.id, 'CREATE', 'REPORT', `Submitted daily report for "${currentTask.name}"`);
 
-      // Update total metrics if recruitment task
-      if (currentTask.category === 'RECRUITMENT' && metrics) {
-        await supabase
-          .from('task_recruitment_metrics')
-          .update({
-             total_cv_received: (metrics.total_cv_received || 0) + parseInt(cvReceived),
-             screened_cv: (metrics.screened_cv || 0) + parseInt(cvPassScreening),
-             offers: (metrics.offers || 0) + parseInt(offers)
-          })
-          .eq('task_id', currentTask.id);
+        // Gửi thông báo cho tranghoang
+        const tranghoangProfile = profiles.find(p => p.email.toLowerCase().includes('tranghoang'));
+        if (tranghoangProfile && tranghoangProfile.id !== session.user.id) {
+          await supabase.from('notifications').insert([{
+            user_id: tranghoangProfile.id,
+            content: `${session.user.email.split('@')[0]} vừa nộp report cho task "${currentTask.name}"`
+          }]);
+        }
+
+        // Update total metrics if recruitment task
+        if (currentTask.category === 'RECRUITMENT' && metrics) {
+          await supabase
+            .from('task_recruitment_metrics')
+            .update({
+               total_cv_received: (metrics.total_cv_received || 0) + parseInt(cvReceived || 0),
+               screened_cv: (metrics.screened_cv || 0) + parseInt(cvPassScreening || 0),
+               offers: (metrics.offers || 0) + parseInt(offers || 0)
+            })
+            .eq('task_id', currentTask.id);
+        }
       }
 
       // Reset form and refresh
+      setEditingReportId(null);
+      setEditingReportOldMetrics(null);
       setCvReceived(0);
       setCvPassScreening(0); setCvInterviewNsc(0); setCvInterviewClient(0);
       setOffers(0); setOnboardings(0); setPassProbations(0);
@@ -345,7 +397,18 @@ export default function TaskDetail({ task, onBack, session, isAdmin }) {
         
         {/* Left Column: Form submit */}
         <div className="glass-panel" style={{ padding: '24px' }}>
-          <h3>Submit Daily Report</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3>{editingReportId ? 'Edit Daily Report' : 'Submit Daily Report'}</h3>
+            {editingReportId && (
+              <button onClick={() => {
+                setEditingReportId(null);
+                setEditingReportOldMetrics(null);
+                setCvReceived(0); setCvPassScreening(0); setCvInterviewNsc(0); setCvInterviewClient(0);
+                setOffers(0); setOnboardings(0); setPassProbations(0);
+                setResourceType(''); setResourceDetail(''); setReportNotes('');
+              }} className="btn" style={{ padding: '4px 8px', fontSize: '0.8rem', backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', color: 'var(--text-main)' }}>Cancel Edit</button>
+            )}
+          </div>
           <form onSubmit={submitDailyReport} style={{ marginTop: '16px' }}>
             {currentTask.category === 'RECRUITMENT' && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '16px' }}>
@@ -449,7 +512,7 @@ export default function TaskDetail({ task, onBack, session, isAdmin }) {
             </div>
             
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={submitting}>
-              {submitting ? 'Submitting...' : 'Submit Report'}
+              {submitting ? 'Saving...' : (editingReportId ? 'Update Report' : 'Submit Report')}
             </button>
           </form>
         </div>
@@ -490,7 +553,10 @@ export default function TaskDetail({ task, onBack, session, isAdmin }) {
                   <div key={report.id} style={{ borderLeft: '3px solid var(--primary-color)', paddingLeft: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                       <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>{reporterName}</span>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{new Date(report.report_date).toLocaleDateString()}</span>
+                      <div>
+                        <button onClick={() => handleEditReport(report)} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontSize: '0.8rem', marginRight: '8px', textDecoration: 'underline' }}>Edit</button>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{new Date(report.report_date).toLocaleDateString()}</span>
+                      </div>
                     </div>
                     <p style={{ fontSize: '0.95rem', margin: 0 }}>{report.notes}</p>
                     {currentTask.category === 'RECRUITMENT' && (
