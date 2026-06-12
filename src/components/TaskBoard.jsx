@@ -240,7 +240,26 @@ export default function TaskBoard({ session, isAdmin }) {
       ) : (
         <div style={{ display: 'flex', gap: '24px', overflowX: 'auto', paddingBottom: '16px' }}>
           {columns.map(col => (
-            <div key={col.id} style={{ flex: 1, minWidth: '300px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px' }}>
+            <div 
+              key={col.id} 
+              style={{ flex: 1, minWidth: '300px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px' }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.currentTarget.style.backgroundColor = 'var(--surface-color)';
+              }}
+              onDragLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-color)';
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.currentTarget.style.backgroundColor = 'var(--bg-color)';
+                const taskId = e.dataTransfer.getData('taskId');
+                const task = tasks.find(t => t.id === taskId);
+                if (task && task.status !== col.id) {
+                  updateTaskStatus(task, col.id);
+                }
+              }}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: `2px solid ${col.color}`, paddingBottom: '8px' }}>
                 <h3 style={{ fontSize: '1.1rem' }}>{col.title}</h3>
                 <span className="badge" style={{ backgroundColor: 'var(--surface-color)', borderColor: 'var(--border-color)' }}>
@@ -253,7 +272,12 @@ export default function TaskBoard({ session, isAdmin }) {
                   <div 
                     key={task.id} 
                     className="glass-panel" 
-                    style={{ padding: '16px', cursor: 'pointer', transition: 'transform 0.2s', backgroundColor: 'var(--surface-color)' }}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('taskId', task.id);
+                      e.dataTransfer.effectAllowed = 'move';
+                    }}
+                    style={{ padding: '16px', cursor: 'grab', transition: 'transform 0.2s', backgroundColor: 'var(--surface-color)', opacity: 1 }}
                     onClick={() => setSelectedTask(task)}
                     onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
                     onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}

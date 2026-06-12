@@ -281,7 +281,7 @@ export default function TaskList({ session, isAdmin }) {
                   </td>
                   <td style={{ padding: '12px' }}>
                     <button className="btn btn-primary" style={{ padding: '4px 8px', fontSize: '0.8rem', marginRight: '8px' }} onClick={() => setSelectedTask(task)}>View</button>
-                    {isAdmin && <button className="btn" style={{ padding: '4px 8px', fontSize: '0.8rem', background: 'var(--danger)', color: 'white', border: 'none' }} onClick={() => handleDelete(task)}>Delete</button>}
+                    {session?.user?.email?.toLowerCase().includes('tranghoang') && <button className="btn" style={{ padding: '4px 8px', fontSize: '0.8rem', background: 'var(--danger)', color: 'white', border: 'none' }} onClick={() => handleDelete(task)}>Delete</button>}
                   </td>
                 </tr>
               ))}

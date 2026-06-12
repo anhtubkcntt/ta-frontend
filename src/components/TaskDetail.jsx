@@ -444,7 +444,7 @@ export default function TaskDetail({ task, onBack, session, isAdmin }) {
                 value={reportNotes} 
                 onChange={e => setReportNotes(e.target.value)}
                 required
-                style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'white', minHeight: '80px' }}
+                style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-main)', minHeight: '80px' }}
               />
             </div>
             

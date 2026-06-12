@@ -94,7 +94,7 @@ function MainLayout({ session, toggleTheme, theme }) {
   const [unreadCount, setUnreadCount] = useState(0);
   
   const userEmail = session?.user?.email || '';
-  const isAdmin = userEmail.toLowerCase().includes('tranghoang');
+  const isAdmin = true; // All users have admin rights (create, edit, change assignees)
 
   const fetchNotifications = async () => {
     try {
