@@ -24,6 +24,11 @@ export default function Dashboard({ session }) {
     total: 0
   });
 
+  const [reportsData, setReportsData] = useState([]);
+  const [taskMap, setTaskMap] = useState({});
+  const [profileMap, setProfileMap] = useState({});
+  const [selectedMetricDetail, setSelectedMetricDetail] = useState(null);
+
   useEffect(() => {
     fetchMetrics();
   }, [timeFilter, customStart, customEnd]);
@@ -80,11 +85,12 @@ export default function Dashboard({ session }) {
       if (tasksError) throw tasksError;
 
       const { data: profilesData } = await supabase.from('profiles').select('*');
-      let profileMap = {};
+      let pMap = {};
       if (profilesData) {
         profilesData.forEach(p => {
-          profileMap[p.id] = p;
+          pMap[p.id] = p;
         });
+        setProfileMap(pMap);
       }
 
       const tStats = {
@@ -95,14 +101,16 @@ export default function Dashboard({ session }) {
         total: tasksData ? tasksData.length : 0
       };
 
+      let tMap = {};
       if (tasksData) {
         tasksData.forEach(t => {
+          tMap[t.id] = t;
           if (tStats.categories[t.category] !== undefined) tStats.categories[t.category]++;
           if (tStats.statuses[t.status] !== undefined) tStats.statuses[t.status]++;
           
           if (t.pic_ids && t.pic_ids.length > 0) {
             t.pic_ids.forEach(picId => {
-              const profile = profileMap[picId];
+              const profile = pMap[picId];
               if (profile) {
                 const username = profile.email.split('@')[0];
                 tStats.assignees[username] = (tStats.assignees[username] || 0) + 1;
@@ -114,7 +122,7 @@ export default function Dashboard({ session }) {
           
           if (t.supporter_ids && t.supporter_ids.length > 0) {
             t.supporter_ids.forEach(suppId => {
-              const profile = profileMap[suppId];
+              const profile = pMap[suppId];
               if (profile) {
                 const username = profile.email.split('@')[0];
                 tStats.supporters[username] = (tStats.supporters[username] || 0) + 1;
@@ -124,6 +132,7 @@ export default function Dashboard({ session }) {
             tStats.supporters['No Supporters'] = (tStats.supporters['No Supporters'] || 0) + 1;
           }
         });
+        setTaskMap(tMap);
       }
       setTaskMetrics(tStats);
 
@@ -133,6 +142,7 @@ export default function Dashboard({ session }) {
       };
 
       if (data) {
+        setReportsData(data);
         data.forEach(report => {
           totals.cv_received += parseInt(report.cv_received || 0);
           totals.cv_pass_screening += parseInt(report.cv_pass_screening || 0);
@@ -153,13 +163,13 @@ export default function Dashboard({ session }) {
   };
 
   const statCards = [
-    { title: 'Total CVs', value: metrics.cv_received, color: 'var(--primary-color)' },
-    { title: 'Pass Screen', value: metrics.cv_pass_screening, color: '#3b82f6' },
-    { title: 'Int. NSC', value: metrics.cv_interview_nsc, color: '#8b5cf6' },
-    { title: 'Int. Client', value: metrics.cv_interview_client, color: '#d946ef' },
-    { title: 'Offers', value: metrics.offers, color: 'var(--success)' },
-    { title: 'Onboardings', value: metrics.onboardings, color: '#10b981' },
-    { title: 'Pass Probation', value: metrics.pass_probations, color: '#059669' }
+    { key: 'cv_received', title: 'Total CVs', value: metrics.cv_received, color: 'var(--primary-color)' },
+    { key: 'cv_pass_screening', title: 'Pass Screen', value: metrics.cv_pass_screening, color: '#3b82f6' },
+    { key: 'cv_interview_nsc', title: 'Int. NSC', value: metrics.cv_interview_nsc, color: '#8b5cf6' },
+    { key: 'cv_interview_client', title: 'Int. Client', value: metrics.cv_interview_client, color: '#d946ef' },
+    { key: 'offers', title: 'Offers', value: metrics.offers, color: 'var(--success)' },
+    { key: 'onboardings', title: 'Onboardings', value: metrics.onboardings, color: '#10b981' },
+    { key: 'pass_probations', title: 'Pass Probation', value: metrics.pass_probations, color: '#059669' }
   ];
 
   return (
@@ -296,7 +306,14 @@ export default function Dashboard({ session }) {
           <h3 style={{ marginBottom: '24px', color: 'var(--text-main)', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>Recruitment Metrics</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px' }}>
             {statCards.map((stat, idx) => (
-              <div key={idx} className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderTop: `4px solid ${stat.color}` }}>
+              <div 
+                key={idx} 
+                className="glass-panel" 
+                style={{ padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderTop: `4px solid ${stat.color}`, cursor: 'pointer', transition: 'transform 0.2s' }}
+                onClick={() => setSelectedMetricDetail(stat)}
+                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+              >
                 <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '12px', textAlign: 'center' }}>{stat.title}</h3>
                 <p style={{ fontSize: '2.5rem', fontWeight: 'bold', color: stat.color }}>{stat.value}</p>
               </div>
@@ -337,6 +354,59 @@ export default function Dashboard({ session }) {
               })}
             </div>
           </div>
+          
+          {selectedMetricDetail && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setSelectedMetricDetail(null)}>
+              <div className="glass-panel" style={{ width: '90%', maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto', padding: '32px', position: 'relative', backgroundColor: 'var(--bg-color)' }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: `2px solid ${selectedMetricDetail.color}`, paddingBottom: '16px' }}>
+                  <h3 style={{ color: selectedMetricDetail.color, fontSize: '1.4rem' }}>Detail: {selectedMetricDetail.title}</h3>
+                  <button onClick={() => setSelectedMetricDetail(null)} style={{ background: 'none', border: 'none', fontSize: '1.8rem', cursor: 'pointer', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--surface-color)' }}>&times;</button>
+                </div>
+                
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.95rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                      <th style={{ padding: '12px 8px' }}>PIC</th>
+                      <th style={{ padding: '12px 8px' }}>Task Name</th>
+                      <th style={{ padding: '12px 8px', textAlign: 'right' }}>Count</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const aggregated = {};
+                      reportsData.forEach(report => {
+                        const val = parseInt(report[selectedMetricDetail.key] || 0);
+                        if (val > 0) {
+                          const key = `${report.user_id}_${report.task_id}`;
+                          if (!aggregated[key]) {
+                            aggregated[key] = {
+                              userId: report.user_id,
+                              taskId: report.task_id,
+                              count: 0
+                            };
+                          }
+                          aggregated[key].count += val;
+                        }
+                      });
+                      const items = Object.values(aggregated).sort((a, b) => b.count - a.count);
+                      
+                      if (items.length === 0) {
+                        return <tr><td colSpan="3" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>No data available for this metric.</td></tr>;
+                      }
+                      
+                      return items.map((item, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                          <td style={{ padding: '16px 8px', fontWeight: 'bold' }}>{profileMap[item.userId] ? profileMap[item.userId].email.split('@')[0] : 'Unknown'}</td>
+                          <td style={{ padding: '16px 8px', color: 'var(--text-main)' }}>{taskMap[item.taskId] ? taskMap[item.taskId].name : 'Deleted Task'}</td>
+                          <td style={{ padding: '16px 8px', textAlign: 'right', color: selectedMetricDetail.color, fontWeight: 'bold', fontSize: '1.1rem' }}>{item.count}</td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
