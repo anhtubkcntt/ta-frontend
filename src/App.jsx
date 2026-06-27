@@ -4,6 +4,7 @@ import TaskBoard from './components/TaskBoard';
 import TaskList from './components/TaskList';
 import Dashboard from './components/Dashboard';
 import ActivityFeed from './components/ActivityFeed';
+import BackupModal from './components/BackupModal';
 import './index.css';
 
 function App() {
@@ -91,6 +92,7 @@ function MainLayout({ session, toggleTheme, theme }) {
   const [activeTab, setActiveTab] = useState('DASHBOARD');
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showBackupModal, setShowBackupModal] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   
   const userEmail = session?.user?.email || '';
@@ -212,6 +214,16 @@ function MainLayout({ session, toggleTheme, theme }) {
         </ul>
         
         <div style={{ marginTop: 'auto', padding: '20px', borderTop: '1px solid var(--border-color)' }}>
+          {userEmail.includes('tranghoang') && (
+            <button 
+              className="btn glass-panel" 
+              onClick={() => setShowBackupModal(true)}
+              style={{ width: '100%', color: 'var(--text-main)', display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}
+            >
+              <span>📥</span> Backup Data
+            </button>
+          )}
+
           <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '12px', wordBreak: 'break-all' }}>
             {session.user.email}
           </p>
@@ -303,6 +315,7 @@ function MainLayout({ session, toggleTheme, theme }) {
           {activeTab === 'ACTIVITY' && <ActivityFeed />}
         </div>
         
+        {showBackupModal && <BackupModal onClose={() => setShowBackupModal(false)} />}
       </div>
     </div>
   );

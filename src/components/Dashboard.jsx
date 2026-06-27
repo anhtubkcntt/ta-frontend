@@ -101,10 +101,8 @@ export default function Dashboard({ session }) {
         total: tasksData ? tasksData.length : 0
       };
 
-      let tMap = {};
       if (tasksData) {
         tasksData.forEach(t => {
-          tMap[t.id] = t;
           if (tStats.categories[t.category] !== undefined) tStats.categories[t.category]++;
           if (tStats.statuses[t.status] !== undefined) tStats.statuses[t.status]++;
           
@@ -132,9 +130,17 @@ export default function Dashboard({ session }) {
             tStats.supporters['No Supporters'] = (tStats.supporters['No Supporters'] || 0) + 1;
           }
         });
-        setTaskMap(tMap);
       }
       setTaskMetrics(tStats);
+
+      const { data: allTasks } = await supabase.from('tasks').select('id, name');
+      let tMap = {};
+      if (allTasks) {
+        allTasks.forEach(t => {
+          tMap[t.id] = t;
+        });
+        setTaskMap(tMap);
+      }
 
       const totals = {
         cv_received: 0, cv_pass_screening: 0, cv_interview_nsc: 0,
